@@ -3,8 +3,6 @@ NS.UI = NS.UI or {}
 
 local mainFrame
 
--- Backwards compatibility wrapper for Core.lua
--- Core.lua calls NS.UpdateUI(), so we map it to the List update.
 function NS.UpdateUI()
     if NS.UI.List and NS.UI.List.Update then
         NS.UI.List.Update()
@@ -36,13 +34,37 @@ function NS.CreateUI()
         mainFrame:SetPoint("CENTER")
     end
 
-    mainFrame:SetMovable(true)
-    mainFrame:EnableMouse(true)
-    mainFrame:RegisterForDrag("LeftButton")
-    mainFrame:SetScript("OnDragStart", mainFrame.StartMoving)
-    mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
+    -- =====================================================================
+    -- UPDATED: MOVEMENT LOGIC (Respects Lock Setting)
+    -- =====================================================================
+    local isLocked = MobCompendiumDB.settings and MobCompendiumDB.settings.lockWindow
 
-    -- Sound & Title
+    mainFrame:SetMovable(not isLocked)
+    mainFrame:EnableMouse(true)
+
+    if not isLocked then
+        mainFrame:RegisterForDrag("LeftButton")
+    end
+
+    mainFrame:SetScript("OnDragStart", function(self)
+        -- Double check setting in case it changed while window was hidden
+        if not MobCompendiumDB.settings.lockWindow then
+            self:StartMoving()
+        end
+    end)
+    mainFrame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        -- Save Position
+        local point, _, relativePoint, x, y = self:GetPoint()
+        MobCompendiumDB.windowPos = {
+            point = point,
+            relativePoint = relativePoint,
+            x = x,
+            y = y
+        }
+    end)
+    -- =====================================================================
+
     mainFrame:SetScript("OnShow", function()
         PlaySound(862)
     end)
@@ -56,8 +78,6 @@ function NS.CreateUI()
     mainFrame.title:SetPoint("LEFT", mainFrame.TitleBg, "LEFT", 5, 0)
     mainFrame.title:SetText("Mob Compendium")
 
-    -- INITIALIZE SUB-MODULES
-    -- We pass the mainFrame to them so they can attach their panels to it
     if NS.UI.List then
         NS.UI.List.Init(mainFrame)
     end

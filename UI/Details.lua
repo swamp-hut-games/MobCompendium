@@ -6,8 +6,9 @@ NS.UI.Details = {}
 
 -- Local References
 local parentFrame
-local nameText, countText, rankText, lastKillText
+local nameText, countText, typeText, lastKillText
 local rankIcon, modelView
+local rankText
 
 function NS.UI.Details.Init(mainFrame)
     parentFrame = CreateFrame("Frame", nil, mainFrame)
@@ -27,18 +28,27 @@ function NS.UI.Details.Init(mainFrame)
     })
     headerFrame:SetBackdropColor(1, 1, 1, 1)
 
-    -- Text Elements
+    -- A. NAME (Top, Big, Gold)
     nameText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     nameText:SetPoint("TOP", headerFrame, "TOP", 0, -15)
+    nameText:SetTextColor(1, 0.82, 0) -- Gold
 
-    countText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    countText:SetScale(1.2)
-    countText:SetPoint("TOP", nameText, "BOTTOM", 0, -8)
+    -- B. TYPE (Below Name, Small, Grey)
+    typeText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    typeText:SetPoint("TOP", nameText, "BOTTOM", 0, -4)
+    typeText:SetTextColor(0.7, 0.7, 0.7) -- Grey
 
+    -- C. KILL COUNT (Below Type, Bigger Font)
+    countText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    countText:SetPoint("TOP", typeText, "BOTTOM", 0, -6)
+    countText:SetTextColor(1, 1, 1) -- Force White
+
+    -- D. LAST KILL (Anchored to BOTTOM of Header)
     lastKillText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    lastKillText:SetPoint("TOP", countText, "BOTTOM", 0, -5)
-    lastKillText:SetTextColor(0.7, 0.7, 0.7)
+    lastKillText:SetPoint("BOTTOM", headerFrame, "BOTTOM", 0, 8)
+    lastKillText:SetTextColor(0.6, 0.6, 0.6)
 
+    -- E. Rank Icon & Text (Bottom Right)
     rankIcon = headerFrame:CreateTexture(nil, "OVERLAY")
     rankIcon:SetSize(24, 24)
     rankIcon:SetPoint("BOTTOMRIGHT", headerFrame, "BOTTOMRIGHT", -15, 10)
@@ -100,12 +110,23 @@ function NS.UI.Details.ShowMob(npcID)
         return
     end
 
-    -- Text Updates
+    -- 1. NAME
     nameText:SetText(data.name)
+
+    -- 2. TYPE
+    if data.type then
+        typeText:SetText(data.type)
+        typeText:Show()
+    else
+        typeText:Hide()
+    end
+
+    -- 3. KILLS
     countText:SetText("Killed: " .. data.kills)
 
+    -- 4. COORDS / TIME
     if data.lastTime and data.lastX and data.lastY then
-        lastKillText:SetText(string.format("Last Kill: %.1f, %.1f  |cffaaaaaa(%s)|r", data.lastX, data.lastY, data.lastTime))
+        lastKillText:SetText(string.format("Coords: %.1f, %.1f  (%s)", data.lastX, data.lastY, data.lastTime))
         lastKillText:Show()
     else
         lastKillText:Hide()
@@ -126,7 +147,7 @@ function NS.UI.Details.ShowMob(npcID)
     else
         rankIcon:Hide()
     end
-    
+
     modelView:SetCreature(npcID)
     modelView.currentZoom = 0
     modelView:SetFacing(0)
@@ -134,8 +155,13 @@ function NS.UI.Details.ShowMob(npcID)
 end
 
 function NS.UI.Details.Reset()
+    if not nameText then
+        return
+    end
+
     nameText:SetText("")
     countText:SetText("")
+    typeText:SetText("")
     lastKillText:SetText("")
     modelView:ClearModel()
 end

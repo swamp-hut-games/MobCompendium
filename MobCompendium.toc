@@ -6,6 +6,7 @@
 ## SavedVariables: MobCompendiumDB
 
 Constants.lua
+Settings.lua
 UI\Details.lua
 UI\List.lua
 UI\Main.lua

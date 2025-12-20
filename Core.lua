@@ -6,10 +6,37 @@ local recentTags = {}
 -- LOGIC & HELPERS
 -- =========================================================================
 
+-- Helper: Find the UnitID (token) for a specific GUID if it is visible
+local function GetUnitToken(targetGUID)
+    if UnitGUID("target") == targetGUID then
+        return "target"
+    end
+    if UnitGUID("mouseover") == targetGUID then
+        return "mouseover"
+    end
+    if UnitGUID("focus") == targetGUID then
+        return "focus"
+    end
+    if UnitGUID("softenemy") == targetGUID then
+        return "softenemy"
+    end
+
+    -- Scan Nameplates
+    for i = 1, 40 do
+        local unit = "nameplate" .. i
+        if UnitExists(unit) and UnitGUID(unit) == targetGUID then
+            return unit
+        end
+    end
+    return nil
+end
+
 local function ResolveRank(unitToken)
-    if UnitCreatureType(unitToken) == "Critter" then
+    local cType = UnitCreatureType(unitToken)
+    if cType == "Critter" or cType == "Wildtier" then
         return "critter"
     end
+
     local c = UnitClassification(unitToken)
     if c == "worldboss" then
         return "boss"
@@ -29,25 +56,6 @@ local function ResolveRank(unitToken)
     return "normal"
 end
 
-local function GetUnitRank(destGUID)
-    if UnitGUID("target") == destGUID then
-        return ResolveRank("target")
-    end
-    if UnitGUID("mouseover") == destGUID then
-        return ResolveRank("mouseover")
-    end
-    if UnitGUID("focus") == destGUID then
-        return ResolveRank("focus")
-    end
-    for i = 1, 40 do
-        local unit = "nameplate" .. i
-        if UnitExists(unit) and UnitGUID(unit) == destGUID then
-            return ResolveRank(unit)
-        end
-    end
-    return nil
-end
-
 -- =========================================================================
 -- SLASH COMMANDS
 -- =========================================================================
@@ -60,6 +68,7 @@ end
 SLASH_MobCompendiumReset1 = "/mobcreset"
 SlashCmdList["MobCompendiumReset"] = function()
     MobCompendiumDB = {}
+    NS.InitSettings()
     NS.ResetUI()
     print("|cff00ffffMobCompendium:|r Database has been reset.")
 end
@@ -76,6 +85,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
         if MobCompendiumDB == nil then
             MobCompendiumDB = {}
         end
+        NS.InitSettings()
         print("|cff00ff00MobCompendium:|r Loaded successfully.")
     end
 
@@ -87,19 +97,29 @@ frame:SetScript("OnEvent", function(self, event, arg1)
             if string.find(subEvent, "_DAMAGE") or string.find(subEvent, "_MISSED") or string.find(subEvent, "SPELL_AURA") then
                 local unitType = strsplit("-", destGUID)
                 if unitType == "Creature" then
-                    local existingData = recentTags[destGUID]
-                    local knownRank = existingData and existingData.rank
-                    if not knownRank or knownRank == "normal" then
-                        local foundRank = GetUnitRank(destGUID)
-                        if foundRank then
-                            recentTags[destGUID] = { time = GetTime(), rank = foundRank }
-                        elseif not existingData then
-                            recentTags[destGUID] = { time = GetTime(), rank = "normal" }
-                        else
-                            recentTags[destGUID].time = GetTime()
-                        end
+
+                    local token = GetUnitToken(destGUID)
+                    local currentData = recentTags[destGUID]
+
+                    if token then
+                        -- We see the unit (Target/Nameplate/Mouseover)
+                        -- Capture the Type and Rank immediately
+                        recentTags[destGUID] = {
+                            time = GetTime(),
+                            rank = ResolveRank(token),
+                            type = UnitCreatureType(token)
+                        }
+                    elseif currentData then
+                        -- We hit it blindly (DoT tick?), just update the timestamp
+                        currentData.time = GetTime()
                     else
-                        recentTags[destGUID].time = GetTime()
+                        -- First hit and blind (Instant cast on something behind you?)
+                        -- Initialize as unknown; will try to resolve at death or next hit
+                        recentTags[destGUID] = {
+                            time = GetTime(),
+                            rank = "normal",
+                            type = nil
+                        }
                     end
                 end
             end
@@ -114,11 +134,21 @@ frame:SetScript("OnEvent", function(self, event, arg1)
 
                 if isTaggedByMe then
                     npcID = tonumber(npcID)
+
                     local capturedRank = tagData.rank or "normal"
-                    if capturedRank == "normal" then
-                        local lastResortRank = GetUnitRank(destGUID)
-                        if lastResortRank and lastResortRank ~= "normal" then
-                            capturedRank = lastResortRank
+                    local capturedType = tagData.type
+
+                    -- Last ditch effort: If we missed the type (blind kill), 
+                    -- check if we happen to be targeting/mousing over the corpse now.
+                    if not capturedType or capturedRank == "normal" then
+                        local token = GetUnitToken(destGUID)
+                        if token then
+                            if not capturedType then
+                                capturedType = UnitCreatureType(token)
+                            end
+                            if capturedRank == "normal" then
+                                capturedRank = ResolveRank(token)
+                            end
                         end
                     end
 
@@ -140,17 +170,22 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                     local currentTime = date("%Y-%m-%d %H:%M")
 
                     if not MobCompendiumDB[npcID] then
+                        -- NEW ENTRY
                         MobCompendiumDB[npcID] = {
                             name = destName,
                             kills = 1,
                             zone = zoneName,
                             rank = capturedRank,
+                            type = capturedType,
                             lastX = posX, lastY = posY,
                             lastTime = currentTime,
                             instType = instanceType
                         }
-                        print("|cff00ffffMobCompendium:|r Discovered " .. destName .. " (" .. capturedRank .. ")!")
+                        if MobCompendiumDB.settings.printNew then
+                            print("|cff00ffffMobCompendium:|r Discovered " .. destName .. " (" .. (capturedType or "Unknown") .. ")!")
+                        end
                     else
+                        -- UPDATE ENTRY
                         local entry = MobCompendiumDB[npcID]
                         entry.kills = entry.kills + 1
                         entry.zone = zoneName
@@ -158,14 +193,20 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         entry.lastY = posY
                         entry.lastTime = currentTime
                         entry.instType = instanceType
+                        
                         if (entry.rank or "normal") == "normal" and capturedRank ~= "normal" then
                             entry.rank = capturedRank
                         end
-                        print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total: " .. entry.kills .. ")")
+                        if not entry.type and capturedType then
+                            entry.type = capturedType
+                        end
+
+                        if MobCompendiumDB.settings.printUpdate then
+                            print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total: " .. entry.kills .. ")")
+                        end
                     end
                     recentTags[destGUID] = nil
 
-                    -- Call the Shared Namespace Function to update UI
                     if NS.UpdateUI then
                         NS.UpdateUI()
                     end

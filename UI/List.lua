@@ -7,14 +7,18 @@ local scrollChild, searchBox
 local buttons = {}
 local expandedZones = {}
 local selectedNpcID = nil
+local searchTimer = nil
 
 local function ToggleZoneHeader(zoneName)
     local isExpanding = not expandedZones[zoneName]
     if IsAltKeyDown() then
         if isExpanding then
-            for _, data in pairs(MobCompendiumDB) do
-                local z = data.zone or "Unknown Zone"
-                expandedZones[z] = true
+            for id, data in pairs(MobCompendiumDB) do
+                if type(id) == "number" then
+                    -- FIX: Only check actual mobs
+                    local z = data.zone or "Unknown Zone"
+                    expandedZones[z] = true
+                end
             end
         else
             expandedZones = {}
@@ -46,7 +50,13 @@ function NS.UI.List.Init(mainFrame)
         self:ClearFocus()
     end)
     searchBox:SetScript("OnTextChanged", function(self)
-        NS.UI.List.Update()
+        if searchTimer then
+            searchTimer:Cancel()
+        end
+        searchTimer = C_Timer.NewTimer(0.1, function()
+            NS.UI.List.Update()
+            searchTimer = nil
+        end)
     end)
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, listBgFrame, "UIPanelScrollFrameTemplate")
@@ -78,24 +88,28 @@ function NS.UI.List.Update()
     local isSearching = (searchText ~= "")
 
     for id, data in pairs(MobCompendiumDB) do
-        local z = data.zone or "Unknown Zone"
-        local mobName = strlower(data.name or "")
+        -- FIX: CHECK IF ID IS A NUMBER
+        -- This prevents the loop from trying to display "settings" or "windowPos" as mobs
+        if type(id) == "number" then
+            local z = data.zone or "Unknown Zone"
+            local mobName = strlower(data.name or "")
 
-        if not isSearching or string.find(mobName, searchText, 1, true) then
-            if not zones[z] then
-                zones[z] = { mobs = {}, type = "none" }
+            if not isSearching or string.find(mobName, searchText, 1, true) then
+                if not zones[z] then
+                    zones[z] = { mobs = {}, type = "none" }
+                end
+
+                local mType = data.instType or "none"
+                if mType == "raid" then
+                    zones[z].type = "raid"
+                elseif mType == "party" and zones[z].type ~= "raid" then
+                    zones[z].type = "party"
+                elseif mType == "scenario" and zones[z].type == "none" then
+                    zones[z].type = "scenario"
+                end
+
+                table.insert(zones[z].mobs, { id = id, name = data.name, rank = data.rank or "normal" })
             end
-
-            local mType = data.instType or "none"
-            if mType == "raid" then
-                zones[z].type = "raid"
-            elseif mType == "party" and zones[z].type ~= "raid" then
-                zones[z].type = "party"
-            elseif mType == "scenario" and zones[z].type == "none" then
-                zones[z].type = "scenario"
-            end
-
-            table.insert(zones[z].mobs, { id = id, name = data.name, rank = data.rank or "normal" })
         end
     end
 
@@ -117,9 +131,11 @@ function NS.UI.List.Update()
         })
 
         if isExpanded then
+            -- Safe sort: ensures we don't crash if a name is somehow nil
             table.sort(zoneData.mobs, function(a, b)
-                return a.name < b.name
+                return (a.name or "") < (b.name or "")
             end)
+
             for _, mob in ipairs(zoneData.mobs) do
                 table.insert(displayList, { type = "MOB", name = mob.name, id = mob.id, rank = mob.rank })
             end
