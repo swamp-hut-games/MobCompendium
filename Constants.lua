@@ -32,6 +32,12 @@ NS.RANK_CONFIG = {
         coords = { 0, 1, 0, 1 },
         color = { 1, 1, 1 }
     },
+    wildpet = {
+        text = "Wild Pet",
+        icon = "Interface\\Icons\\inv_box_petcarrier_01",
+        coords = { 0, 1, 0, 1 },
+        color = { 1, 1, 1 }
+    },
     critter = {
         text = "Critter",
         icon = "Interface\\Icons\\INV_Misc_Rabbit_2",
@@ -43,6 +49,12 @@ NS.RANK_CONFIG = {
         icon = "Interface\\Icons\\Achievement_character_human_male",
         coords = { 0, 1, 0, 1 },
         color = { 1, 1, 1 }
+    },
+    unknown = {
+        text = "Unknown",
+        icon = "Interface\\Icons\\INV_Misc_QuestionMark",
+        coords = { 0, 1, 0, 1 },
+        color = { 0.7, 0.7, 0.7 }
     }
 }
 

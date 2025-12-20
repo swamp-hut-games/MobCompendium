@@ -15,7 +15,6 @@ local function ToggleZoneHeader(zoneName)
         if isExpanding then
             for id, data in pairs(MobCompendiumDB) do
                 if type(id) == "number" then
-                    -- FIX: Only check actual mobs
                     local z = data.zone or "Unknown Zone"
                     expandedZones[z] = true
                 end
@@ -49,6 +48,8 @@ function NS.UI.List.Init(mainFrame)
     searchBox:SetScript("OnEscapePressed", function(self)
         self:ClearFocus()
     end)
+
+    -- Search Throttle
     searchBox:SetScript("OnTextChanged", function(self)
         if searchTimer then
             searchTimer:Cancel()
@@ -88,8 +89,6 @@ function NS.UI.List.Update()
     local isSearching = (searchText ~= "")
 
     for id, data in pairs(MobCompendiumDB) do
-        -- FIX: CHECK IF ID IS A NUMBER
-        -- This prevents the loop from trying to display "settings" or "windowPos" as mobs
         if type(id) == "number" then
             local z = data.zone or "Unknown Zone"
             local mobName = strlower(data.name or "")
@@ -131,7 +130,6 @@ function NS.UI.List.Update()
         })
 
         if isExpanded then
-            -- Safe sort: ensures we don't crash if a name is somehow nil
             table.sort(zoneData.mobs, function(a, b)
                 return (a.name or "") < (b.name or "")
             end)
@@ -146,6 +144,10 @@ function NS.UI.List.Update()
     -- 3. Render Buttons (Pooling)
     local heightAccumulator = 0
     for i, item in ipairs(displayList) do
+        -- FIX: Capture the item for this iteration specifically
+        -- In Lua 5.1 (WoW), loop variables are shared, so we must localize them for closures.
+        local thisItem = item
+
         local btn = buttons[i]
         if not btn then
             btn = CreateFrame("Button", nil, scrollChild)
@@ -160,17 +162,17 @@ function NS.UI.List.Update()
             buttons[i] = btn
         end
 
-        if item.type == "SPACER" then
+        if thisItem.type == "SPACER" then
             btn:Hide()
-            heightAccumulator = heightAccumulator + item.height
+            heightAccumulator = heightAccumulator + thisItem.height
         else
             btn:Show();
             btn:ClearAllPoints();
             btn:SetPoint("TOPLEFT", 0, -heightAccumulator);
             btn:SetWidth(260)
 
-            if item.type == "HEADER" then
-                local zConfig = NS.ZONE_ICONS[item.instType or "none"] or NS.ZONE_ICONS["none"]
+            if thisItem.type == "HEADER" then
+                local zConfig = NS.ZONE_ICONS[thisItem.instType or "none"] or NS.ZONE_ICONS["none"]
                 btn:SetHeight(26)
                 btn.icon:SetPoint("LEFT", 5, 0);
                 btn.icon:Show();
@@ -178,14 +180,14 @@ function NS.UI.List.Update()
                 btn.icon:SetVertexColor(unpack(zConfig.color))
                 btn.text:SetPoint("LEFT", 25, 0);
                 btn.text:SetFontObject("GameFontNormal");
-                btn.text:SetText(item.name);
+                btn.text:SetText(thisItem.name);
                 btn.text:SetTextColor(1, 0.82, 0, 1)
 
                 btn:EnableMouse(not isSearching)
                 btn:SetScript("OnClick", function()
                     if not isSearching then
                         PlaySound(856);
-                        ToggleZoneHeader(item.rawZone);
+                        ToggleZoneHeader(thisItem.rawZone);
                         NS.UI.List.Update()
                     end
                 end)
@@ -198,7 +200,7 @@ function NS.UI.List.Update()
                 heightAccumulator = heightAccumulator + 26
             else
                 -- MOB ROW
-                local rConfig = NS.RANK_CONFIG[item.rank or "normal"]
+                local rConfig = NS.RANK_CONFIG[thisItem.rank or "normal"]
                 btn:SetHeight(18)
                 btn.icon:SetPoint("LEFT", 20, 0)
                 if rConfig and rConfig.icon then
@@ -213,9 +215,9 @@ function NS.UI.List.Update()
                 end
 
                 btn.text:SetPoint("LEFT", 40, 0);
-                btn.text:SetText(item.name)
+                btn.text:SetText(thisItem.name)
 
-                if item.id == selectedNpcID then
+                if thisItem.id == selectedNpcID then
                     btn.text:SetTextColor(0.2, 0.82, 1, 1)
                     btn.highlight:SetColorTexture(0.2, 0.82, 1, 0.2)
                 else
@@ -225,10 +227,16 @@ function NS.UI.List.Update()
 
                 btn:SetScript("OnClick", function()
                     PlaySound(856)
-                    selectedNpcID = item.id
-                    NS.UI.List.Update()        -- Redraw list to show selection highlight
-                    NS.UI.Details.ShowMob(item.id) -- Tell the other module to update
+                    selectedNpcID = thisItem.id
+                    NS.UI.List.Update()
+                    NS.UI.Details.ShowMob(thisItem.id)
+
+                    -- Changed to call the Container update
+                    if NS.UI.RightColumn then
+                        NS.UI.RightColumn.Update(thisItem.id)
+                    end
                 end)
+                
                 btn:EnableMouse(true);
                 btn.highlight:Show()
                 heightAccumulator = heightAccumulator + 18

@@ -1,21 +1,17 @@
 ﻿local _, NS = ...
-
--- Namespace for UI components
 NS.UI = NS.UI or {}
 NS.UI.Details = {}
 
--- Local References
-local parentFrame
-local nameText, countText, typeText, lastKillText
-local rankIcon, modelView
-local rankText
+-- ... (Init function remains identical) ...
+local parentFrame, nameText, countText, typeText, lastKillText, rankIcon, modelView, rankText
+-- (Init code omitted for brevity as it didn't change, just paste your existing Init here if re-copying)
 
 function NS.UI.Details.Init(mainFrame)
+    -- ... (Paste previous Init content here) ...
     parentFrame = CreateFrame("Frame", nil, mainFrame)
     parentFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 304, -22)
-    parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -5, 5)
+    parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -305, 5)
 
-    -- 1. HEADER AREA
     local headerFrame = CreateFrame("Frame", nil, parentFrame, "BackdropTemplate")
     headerFrame:SetHeight(120)
     headerFrame:SetPoint("TOPLEFT", 0, 0)
@@ -28,36 +24,29 @@ function NS.UI.Details.Init(mainFrame)
     })
     headerFrame:SetBackdropColor(1, 1, 1, 1)
 
-    -- A. NAME (Top, Big, Gold)
     nameText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     nameText:SetPoint("TOP", headerFrame, "TOP", 0, -15)
-    nameText:SetTextColor(1, 0.82, 0) -- Gold
+    nameText:SetTextColor(1, 0.82, 0)
 
-    -- B. TYPE (Below Name, Small, Grey)
     typeText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     typeText:SetPoint("TOP", nameText, "BOTTOM", 0, -4)
-    typeText:SetTextColor(0.7, 0.7, 0.7) -- Grey
+    typeText:SetTextColor(0.7, 0.7, 0.7)
 
-    -- C. KILL COUNT (Below Type, Bigger Font)
     countText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     countText:SetPoint("TOP", typeText, "BOTTOM", 0, -6)
-    countText:SetTextColor(1, 1, 1) -- Force White
+    countText:SetTextColor(1, 1, 1)
 
-    -- D. LAST KILL (Anchored to BOTTOM of Header)
     lastKillText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     lastKillText:SetPoint("BOTTOM", headerFrame, "BOTTOM", 0, 8)
     lastKillText:SetTextColor(0.6, 0.6, 0.6)
 
-    -- E. Rank Icon & Text (Bottom Right)
     rankIcon = headerFrame:CreateTexture(nil, "OVERLAY")
     rankIcon:SetSize(24, 24)
     rankIcon:SetPoint("BOTTOMRIGHT", headerFrame, "BOTTOMRIGHT", -15, 10)
-
     rankText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     rankText:SetPoint("RIGHT", rankIcon, "LEFT", -5, 0)
     rankText:SetJustifyH("RIGHT")
 
-    -- 2. MODEL AREA
     local modelFrame = CreateFrame("Frame", nil, parentFrame, "BackdropTemplate")
     modelFrame:SetPoint("TOPLEFT", headerFrame, "BOTTOMLEFT", 0, 0)
     modelFrame:SetPoint("BOTTOMRIGHT", parentFrame, "BOTTOMRIGHT", 0, 0)
@@ -74,46 +63,43 @@ function NS.UI.Details.Init(mainFrame)
     modelView = CreateFrame("PlayerModel", nil, modelFrame)
     modelView:SetPoint("TOPLEFT", 4, -4)
     modelView:SetPoint("BOTTOMRIGHT", -4, 4)
-
-    -- Model Interaction
     modelView.currentZoom = -2
     modelView:SetPosition(-2, 0, 0)
 
-    modelView:SetScript("OnMouseDown", function(self)
-        self.drag = true
-        self.sx = GetCursorPosition()
-        self.sr = self:GetFacing() or 0
+    modelView:SetScript("OnMouseDown", function(self, button)
+        if button == "MiddleButton" then
+            local isPaused = self:GetPaused()
+            self:SetPaused(not isPaused)
+        else
+            self.drag = true
+            self.sx = GetCursorPosition()
+            self.sr = self:GetFacing() or 0
+        end
     end)
-
     modelView:SetScript("OnMouseUp", function(self)
         self.drag = false
     end)
-
     modelView:SetScript("OnUpdate", function(self)
         if self.drag then
-            local cx = GetCursorPosition()
+            local cx = GetCursorPosition();
             self:SetFacing(self.sr + (cx - self.sx) / 80)
         end
     end)
-
     modelView:EnableMouseWheel(true)
     modelView:SetScript("OnMouseWheel", function(self, d)
-        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)))
+        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)));
         self:SetPosition(self.currentZoom, 0, 0)
     end)
 end
 
--- PUBLIC API: Show a specific mob
 function NS.UI.Details.ShowMob(npcID)
     local data = MobCompendiumDB[npcID]
     if not data then
         return
     end
 
-    -- 1. NAME
     nameText:SetText(data.name)
 
-    -- 2. TYPE
     if data.type then
         typeText:SetText(data.type)
         typeText:Show()
@@ -121,20 +107,17 @@ function NS.UI.Details.ShowMob(npcID)
         typeText:Hide()
     end
 
-    -- 3. KILLS
     countText:SetText("Killed: " .. data.kills)
 
-    -- 4. COORDS / TIME
     if data.lastTime and data.lastX and data.lastY then
-        lastKillText:SetText(string.format("Coords: %.1f, %.1f  (%s)", data.lastX, data.lastY, data.lastTime))
+        lastKillText:SetText(string.format("Loc: %.1f, %.1f  (%s)", data.lastX, data.lastY, data.lastTime))
         lastKillText:Show()
     else
         lastKillText:Hide()
     end
 
-    -- Rank Updates
-    local rKey = data.rank or "normal"
-    local rConfig = NS.RANK_CONFIG[rKey] or NS.RANK_CONFIG["normal"]
+    local rKey = data.rank or "unknown"
+    local rConfig = NS.RANK_CONFIG[rKey] or NS.RANK_CONFIG["unknown"]
     rankText:SetText(rConfig.text)
 
     if rConfig.icon then
@@ -148,17 +131,17 @@ function NS.UI.Details.ShowMob(npcID)
         rankIcon:Hide()
     end
 
-    modelView:SetCreature(npcID)
     modelView.currentZoom = 0
     modelView:SetFacing(0)
     modelView:SetPosition(0, 0, 0)
+    modelView:SetCreature(npcID)
+
 end
 
 function NS.UI.Details.Reset()
     if not nameText then
         return
     end
-
     nameText:SetText("")
     countText:SetText("")
     typeText:SetText("")

@@ -16,6 +16,9 @@ function NS.ResetUI()
     if NS.UI.Details then
         NS.UI.Details.Reset()
     end
+    if NS.UI.RightColumn then
+        NS.UI.RightColumn.Reset()
+    end -- Changed
 end
 
 function NS.CreateUI()
@@ -24,9 +27,8 @@ function NS.CreateUI()
     end
 
     mainFrame = CreateFrame("Frame", "MobCompendiumMainWindow", UIParent, "BasicFrameTemplateWithInset")
-    mainFrame:SetSize(900, 600)
+    mainFrame:SetSize(1150, 600)
 
-    -- Load Position
     if MobCompendiumDB and MobCompendiumDB.windowPos then
         local pos = MobCompendiumDB.windowPos
         mainFrame:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
@@ -34,36 +36,23 @@ function NS.CreateUI()
         mainFrame:SetPoint("CENTER")
     end
 
-    -- =====================================================================
-    -- UPDATED: MOVEMENT LOGIC (Respects Lock Setting)
-    -- =====================================================================
     local isLocked = MobCompendiumDB.settings and MobCompendiumDB.settings.lockWindow
-
     mainFrame:SetMovable(not isLocked)
     mainFrame:EnableMouse(true)
-
     if not isLocked then
         mainFrame:RegisterForDrag("LeftButton")
     end
 
     mainFrame:SetScript("OnDragStart", function(self)
-        -- Double check setting in case it changed while window was hidden
         if not MobCompendiumDB.settings.lockWindow then
             self:StartMoving()
         end
     end)
     mainFrame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        -- Save Position
-        local point, _, relativePoint, x, y = self:GetPoint()
-        MobCompendiumDB.windowPos = {
-            point = point,
-            relativePoint = relativePoint,
-            x = x,
-            y = y
-        }
+        self:StopMovingOrSizing();
+        local p, _, rp, x, y = self:GetPoint();
+        MobCompendiumDB.windowPos = { point = p, relativePoint = rp, x = x, y = y }
     end)
-    -- =====================================================================
 
     mainFrame:SetScript("OnShow", function()
         PlaySound(862)
@@ -78,24 +67,28 @@ function NS.CreateUI()
     mainFrame.title:SetPoint("LEFT", mainFrame.TitleBg, "LEFT", 5, 0)
     mainFrame.title:SetText("Mob Compendium")
 
+    -- Initialize Modules
     if NS.UI.List then
         NS.UI.List.Init(mainFrame)
     end
     if NS.UI.Details then
         NS.UI.Details.Init(mainFrame)
     end
+    if NS.UI.RightColumn then
+        NS.UI.RightColumn.Init(mainFrame)
+    end -- Changed
 end
 
 function NS.ToggleUI()
     if not mainFrame then
-        NS.CreateUI()
-        NS.UpdateUI()
+        NS.CreateUI();
+        NS.UpdateUI();
         return
     end
     if mainFrame:IsShown() then
         mainFrame:Hide()
     else
-        mainFrame:Show()
+        mainFrame:Show();
         NS.UpdateUI()
     end
 end

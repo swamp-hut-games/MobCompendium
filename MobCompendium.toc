@@ -2,11 +2,14 @@
 ## Title: MobCompendium
 ## Notes: A World of Warcraft Addon that acts as a living compendium for mobs you slay.
 ## Author: Michael Zauchinger
-## Version: 0.3
+## Version: 0.5
 ## SavedVariables: MobCompendiumDB
 
 Constants.lua
 Settings.lua
+UI\LootList.lua
+UI\SpellList.lua
+UI\RightColumn.lua
 UI\Details.lua
 UI\List.lua
 UI\Main.lua
