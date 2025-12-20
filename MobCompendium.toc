@@ -1,0 +1,8 @@
+## Interface: 110207
+## Title: MobCompendium
+## Notes: A barebones monster compendium backend.
+## Author: Michael Zauchinger
+## Version: 0.1
+## SavedVariables: MobCompendiumDB
+
+core.lua
