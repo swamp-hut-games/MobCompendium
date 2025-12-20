@@ -101,28 +101,24 @@ function NS.UI.Details.Init(mainFrame)
         local cx, cy = GetCursorPosition()
 
         if self.isRotating then
-            -- Rotation Logic (Unchanged)
+            -- Rotation Logic
             self:SetFacing(self.startRotation + (cx - self.startX) / 80)
 
         elseif self.isPanning then
-            -- Base sensitivity (Higher number = Slower base speed)
+            -- Base sensitivity
             local baseSensitivity = 80
 
-            -- Dynamic Speed Calculation:
-            -- We subtract currentZoom from a constant (10) so that:
-            -- High Zoom (Close) -> Small Multiplier -> Slower Pan
-            -- Low Zoom (Far)   -> Large Multiplier -> Faster Pan
+            -- Dynamic Speed Calculation
             local zoomScale = math.max(0.1, (10 - self.currentZoom) / 10)
 
-            -- Calculate deltas with the zoom scale applied
             local deltaX = ((cx - self.startX) / baseSensitivity) * zoomScale
             local deltaY = ((cy - self.startY) / baseSensitivity) * zoomScale
 
             local newX = self.startPanX + deltaX
             local newY = self.startPanY + deltaY
 
-            -- Clamp values
-            local clampLimit = 2.0
+            -- UPDATED: Increased clamp limit from 2.0 to 8.0
+            local clampLimit = 8.0
             newX = math.max(-clampLimit, math.min(clampLimit, newX))
             newY = math.max(-clampLimit, math.min(clampLimit, newY))
 
