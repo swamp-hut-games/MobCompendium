@@ -2,12 +2,10 @@
 NS.UI = NS.UI or {}
 NS.UI.Details = {}
 
--- ... (Init function remains identical) ...
 local parentFrame, nameText, countText, typeText, lastKillText, rankIcon, modelView, rankText
--- (Init code omitted for brevity as it didn't change, just paste your existing Init here if re-copying)
 
 function NS.UI.Details.Init(mainFrame)
-    -- ... (Paste previous Init content here) ...
+
     parentFrame = CreateFrame("Frame", nil, mainFrame)
     parentFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 304, -22)
     parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -305, 5)
@@ -66,29 +64,70 @@ function NS.UI.Details.Init(mainFrame)
     modelView.currentZoom = -2
     modelView:SetPosition(-2, 0, 0)
 
+    -- Initialize state variables on the frame
+    modelView.currentZoom = -2
+    modelView.panX = 0
+    modelView.panY = 0
+    modelView:SetPosition(modelView.currentZoom, modelView.panX, modelView.panY)
+
     modelView:SetScript("OnMouseDown", function(self, button)
-        if button == "MiddleButton" then
+        -- Capture raw cursor position for delta calculations
+        local cx, cy = GetCursorPosition()
+
+        if button == "LeftButton" then
+            self.isRotating = true
+            self.startX = cx
+            self.startRotation = self:GetFacing() or 0
+
+        elseif button == "RightButton" then
+            self.isPanning = true
+            self.startX = cx
+            self.startY = cy
+            self.startPanX = self.panX
+            self.startPanY = self.panY
+
+        elseif button == "MiddleButton" then
             local isPaused = self:GetPaused()
             self:SetPaused(not isPaused)
-        else
-            self.drag = true
-            self.sx = GetCursorPosition()
-            self.sr = self:GetFacing() or 0
         end
     end)
+
     modelView:SetScript("OnMouseUp", function(self)
-        self.drag = false
+        self.isRotating = false
+        self.isPanning = false
     end)
+
     modelView:SetScript("OnUpdate", function(self)
-        if self.drag then
-            local cx = GetCursorPosition();
-            self:SetFacing(self.sr + (cx - self.sx) / 80)
+        local cx, cy = GetCursorPosition()
+
+        if self.isRotating then
+            self:SetFacing(self.startRotation + (cx - self.startX) / 80)
+
+        elseif self.isPanning then
+
+            local sensitivity = 80
+
+            local deltaX = (cx - self.startX) / sensitivity
+            local deltaY = (cy - self.startY) / sensitivity
+
+            local newX = self.startPanX + deltaX
+            local newY = self.startPanY + deltaY
+
+            local clampLimit = 2.0
+            newX = math.max(-clampLimit, math.min(clampLimit, newX))
+            newY = math.max(-clampLimit, math.min(clampLimit, newY))
+            
+            self.panX = newX
+            self.panY = newY
+            self:SetPosition(self.currentZoom, newX, newY)
         end
     end)
+
     modelView:EnableMouseWheel(true)
     modelView:SetScript("OnMouseWheel", function(self, d)
-        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)));
-        self:SetPosition(self.currentZoom, 0, 0)
+        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)))
+        -- Pass current pan values so we don't reset position on zoom
+        self:SetPosition(self.currentZoom, self.panX, self.panY)
     end)
 end
 
@@ -132,6 +171,9 @@ function NS.UI.Details.ShowMob(npcID)
     end
 
     modelView.currentZoom = 0
+    modelView.panX = 0
+    modelView.panY = 0
+
     modelView:SetFacing(0)
     modelView:SetPosition(0, 0, 0)
     modelView:SetCreature(npcID)
