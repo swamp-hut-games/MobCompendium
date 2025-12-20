@@ -42,8 +42,12 @@ function NS.UI.List.Init(mainFrame)
     searchBox:SetPoint("TOP", listBgFrame, "TOP", 0, -12)
     searchBox:SetAutoFocus(false)
     searchBox:SetFontObject("ChatFontNormal")
-    searchBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-    searchBox:SetScript("OnTextChanged", function(self) NS.UI.List.Update() end)
+    searchBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    searchBox:SetScript("OnTextChanged", function(self)
+        NS.UI.List.Update()
+    end)
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, listBgFrame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", listBgFrame, "TOPLEFT", 10, -50)
@@ -62,7 +66,9 @@ end
 
 -- PUBLIC API: Refresh the scroll view
 function NS.UI.List.Update()
-    if not scrollChild or not scrollChild:IsVisible() then return end
+    if not scrollChild or not scrollChild:IsVisible() then
+        return
+    end
 
     local displayList = {}
     local zones = {}
@@ -76,12 +82,17 @@ function NS.UI.List.Update()
         local mobName = strlower(data.name or "")
 
         if not isSearching or string.find(mobName, searchText, 1, true) then
-            if not zones[z] then zones[z] = { mobs = {}, type = "none" } end
+            if not zones[z] then
+                zones[z] = { mobs = {}, type = "none" }
+            end
 
             local mType = data.instType or "none"
-            if mType == "raid" then zones[z].type = "raid"
-            elseif mType == "party" and zones[z].type ~= "raid" then zones[z].type = "party"
-            elseif mType == "scenario" and zones[z].type == "none" then zones[z].type = "scenario"
+            if mType == "raid" then
+                zones[z].type = "raid"
+            elseif mType == "party" and zones[z].type ~= "raid" then
+                zones[z].type = "party"
+            elseif mType == "scenario" and zones[z].type == "none" then
+                zones[z].type = "scenario"
             end
 
             table.insert(zones[z].mobs, { id = id, name = data.name, rank = data.rank or "normal" })
@@ -90,7 +101,9 @@ function NS.UI.List.Update()
 
     -- 2. Sort & Build List
     local sortedZones = {}
-    for zName, _ in pairs(zones) do table.insert(sortedZones, zName) end
+    for zName, _ in pairs(zones) do
+        table.insert(sortedZones, zName)
+    end
     table.sort(sortedZones)
 
     for _, zName in ipairs(sortedZones) do
@@ -104,7 +117,9 @@ function NS.UI.List.Update()
         })
 
         if isExpanded then
-            table.sort(zoneData.mobs, function(a, b) return a.name < b.name end)
+            table.sort(zoneData.mobs, function(a, b)
+                return a.name < b.name
+            end)
             for _, mob in ipairs(zoneData.mobs) do
                 table.insert(displayList, { type = "MOB", name = mob.name, id = mob.id, rank = mob.rank })
             end
@@ -119,11 +134,13 @@ function NS.UI.List.Update()
         if not btn then
             btn = CreateFrame("Button", nil, scrollChild)
             btn.icon = btn:CreateTexture(nil, "ARTWORK")
-            btn.icon:SetSize(14, 14); btn.icon:SetPoint("LEFT", 5, 0)
+            btn.icon:SetSize(14, 14);
+            btn.icon:SetPoint("LEFT", 5, 0)
             btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             btn.text:SetJustifyH("LEFT")
             btn.highlight = btn:CreateTexture(nil, "HIGHLIGHT")
-            btn.highlight:SetAllPoints(btn); btn.highlight:SetColorTexture(1, 1, 1, 0.2)
+            btn.highlight:SetAllPoints(btn);
+            btn.highlight:SetColorTexture(1, 1, 1, 0.2)
             buttons[i] = btn
         end
 
@@ -131,19 +148,37 @@ function NS.UI.List.Update()
             btn:Hide()
             heightAccumulator = heightAccumulator + item.height
         else
-            btn:Show(); btn:ClearAllPoints(); btn:SetPoint("TOPLEFT", 0, -heightAccumulator); btn:SetWidth(260)
+            btn:Show();
+            btn:ClearAllPoints();
+            btn:SetPoint("TOPLEFT", 0, -heightAccumulator);
+            btn:SetWidth(260)
 
             if item.type == "HEADER" then
                 local zConfig = NS.ZONE_ICONS[item.instType or "none"] or NS.ZONE_ICONS["none"]
                 btn:SetHeight(26)
-                btn.icon:SetPoint("LEFT", 5, 0); btn.icon:Show(); btn.icon:SetTexture(zConfig.icon); btn.icon:SetVertexColor(unpack(zConfig.color))
-                btn.text:SetPoint("LEFT", 25, 0); btn.text:SetFontObject("GameFontNormal"); btn.text:SetText(item.name); btn.text:SetTextColor(1, 0.82, 0, 1)
+                btn.icon:SetPoint("LEFT", 5, 0);
+                btn.icon:Show();
+                btn.icon:SetTexture(zConfig.icon);
+                btn.icon:SetVertexColor(unpack(zConfig.color))
+                btn.text:SetPoint("LEFT", 25, 0);
+                btn.text:SetFontObject("GameFontNormal");
+                btn.text:SetText(item.name);
+                btn.text:SetTextColor(1, 0.82, 0, 1)
 
                 btn:EnableMouse(not isSearching)
                 btn:SetScript("OnClick", function()
-                    if not isSearching then PlaySound(856); ToggleZoneHeader(item.rawZone); NS.UI.List.Update() end
+                    if not isSearching then
+                        PlaySound(856);
+                        ToggleZoneHeader(item.rawZone);
+                        NS.UI.List.Update()
+                    end
                 end)
-                if isSearching then btn.highlight:Hide() else btn.highlight:Show(); btn.highlight:SetColorTexture(1, 0.82, 0, 0.1) end
+                if isSearching then
+                    btn.highlight:Hide()
+                else
+                    btn.highlight:Show();
+                    btn.highlight:SetColorTexture(1, 0.82, 0, 0.1)
+                end
                 heightAccumulator = heightAccumulator + 26
             else
                 -- MOB ROW
@@ -151,11 +186,18 @@ function NS.UI.List.Update()
                 btn:SetHeight(18)
                 btn.icon:SetPoint("LEFT", 20, 0)
                 if rConfig and rConfig.icon then
-                    btn.icon:Show(); btn.icon:SetTexture(rConfig.icon); btn.icon:SetVertexColor(unpack(rConfig.color or {1,1,1}))
-                    if rConfig.coords then btn.icon:SetTexCoord(unpack(rConfig.coords)) end
-                else btn.icon:Hide() end
+                    btn.icon:Show();
+                    btn.icon:SetTexture(rConfig.icon);
+                    btn.icon:SetVertexColor(unpack(rConfig.color or { 1, 1, 1 }))
+                    if rConfig.coords then
+                        btn.icon:SetTexCoord(unpack(rConfig.coords))
+                    end
+                else
+                    btn.icon:Hide()
+                end
 
-                btn.text:SetPoint("LEFT", 40, 0); btn.text:SetText(item.name)
+                btn.text:SetPoint("LEFT", 40, 0);
+                btn.text:SetText(item.name)
 
                 if item.id == selectedNpcID then
                     btn.text:SetTextColor(0.2, 0.82, 1, 1)
@@ -171,11 +213,14 @@ function NS.UI.List.Update()
                     NS.UI.List.Update()        -- Redraw list to show selection highlight
                     NS.UI.Details.ShowMob(item.id) -- Tell the other module to update
                 end)
-                btn:EnableMouse(true); btn.highlight:Show()
+                btn:EnableMouse(true);
+                btn.highlight:Show()
                 heightAccumulator = heightAccumulator + 18
             end
         end
     end
-    for i = #displayList + 1, #buttons do buttons[i]:Hide() end
+    for i = #displayList + 1, #buttons do
+        buttons[i]:Hide()
+    end
     scrollChild:SetHeight(heightAccumulator)
 end

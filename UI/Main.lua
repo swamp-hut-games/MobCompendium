@@ -12,12 +12,18 @@ function NS.UpdateUI()
 end
 
 function NS.ResetUI()
-    if NS.UI.List then NS.UI.List.Reset() end
-    if NS.UI.Details then NS.UI.Details.Reset() end
+    if NS.UI.List then
+        NS.UI.List.Reset()
+    end
+    if NS.UI.Details then
+        NS.UI.Details.Reset()
+    end
 end
 
 function NS.CreateUI()
-    if mainFrame then return end
+    if mainFrame then
+        return
+    end
 
     mainFrame = CreateFrame("Frame", "MobCompendiumMainWindow", UIParent, "BasicFrameTemplateWithInset")
     mainFrame:SetSize(900, 600)
@@ -37,8 +43,12 @@ function NS.CreateUI()
     mainFrame:SetScript("OnDragStop", mainFrame.StopMovingOrSizing)
 
     -- Sound & Title
-    mainFrame:SetScript("OnShow", function() PlaySound(862) end)
-    mainFrame:SetScript("OnHide", function() PlaySound(863) end)
+    mainFrame:SetScript("OnShow", function()
+        PlaySound(862)
+    end)
+    mainFrame:SetScript("OnHide", function()
+        PlaySound(863)
+    end)
     tinsert(UISpecialFrames, "MobCompendiumMainWindow")
 
     mainFrame.title = mainFrame:CreateFontString(nil, "OVERLAY")
@@ -48,8 +58,12 @@ function NS.CreateUI()
 
     -- INITIALIZE SUB-MODULES
     -- We pass the mainFrame to them so they can attach their panels to it
-    if NS.UI.List then NS.UI.List.Init(mainFrame) end
-    if NS.UI.Details then NS.UI.Details.Init(mainFrame) end
+    if NS.UI.List then
+        NS.UI.List.Init(mainFrame)
+    end
+    if NS.UI.Details then
+        NS.UI.Details.Init(mainFrame)
+    end
 end
 
 function NS.ToggleUI()
