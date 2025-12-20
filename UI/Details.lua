@@ -101,22 +101,31 @@ function NS.UI.Details.Init(mainFrame)
         local cx, cy = GetCursorPosition()
 
         if self.isRotating then
+            -- Rotation Logic (Unchanged)
             self:SetFacing(self.startRotation + (cx - self.startX) / 80)
 
         elseif self.isPanning then
+            -- Base sensitivity (Higher number = Slower base speed)
+            local baseSensitivity = 80
 
-            local sensitivity = 80
+            -- Dynamic Speed Calculation:
+            -- We subtract currentZoom from a constant (10) so that:
+            -- High Zoom (Close) -> Small Multiplier -> Slower Pan
+            -- Low Zoom (Far)   -> Large Multiplier -> Faster Pan
+            local zoomScale = math.max(0.1, (10 - self.currentZoom) / 10)
 
-            local deltaX = (cx - self.startX) / sensitivity
-            local deltaY = (cy - self.startY) / sensitivity
+            -- Calculate deltas with the zoom scale applied
+            local deltaX = ((cx - self.startX) / baseSensitivity) * zoomScale
+            local deltaY = ((cy - self.startY) / baseSensitivity) * zoomScale
 
             local newX = self.startPanX + deltaX
             local newY = self.startPanY + deltaY
 
+            -- Clamp values
             local clampLimit = 2.0
             newX = math.max(-clampLimit, math.min(clampLimit, newX))
             newY = math.max(-clampLimit, math.min(clampLimit, newY))
-            
+
             self.panX = newX
             self.panY = newY
             self:SetPosition(self.currentZoom, newX, newY)
@@ -126,7 +135,6 @@ function NS.UI.Details.Init(mainFrame)
     modelView:EnableMouseWheel(true)
     modelView:SetScript("OnMouseWheel", function(self, d)
         self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)))
-        -- Pass current pan values so we don't reset position on zoom
         self:SetPosition(self.currentZoom, self.panX, self.panY)
     end)
 end
