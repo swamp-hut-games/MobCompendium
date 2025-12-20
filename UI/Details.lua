@@ -11,8 +11,6 @@ local rankIcon, modelView
 
 function NS.UI.Details.Init(mainFrame)
     parentFrame = CreateFrame("Frame", nil, mainFrame)
-    -- Position: Right side of the window
-    -- 304 offset allows 300px for the list + 4px padding
     parentFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 304, -22)
     parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -5, 5)
 
@@ -84,13 +82,13 @@ function NS.UI.Details.Init(mainFrame)
     modelView:SetScript("OnUpdate", function(self)
         if self.drag then
             local cx = GetCursorPosition()
-            self:SetFacing(self.sr + (cx - self.sx)/80)
+            self:SetFacing(self.sr + (cx - self.sx) / 80)
         end
     end)
 
     modelView:EnableMouseWheel(true)
     modelView:SetScript("OnMouseWheel", function(self, d)
-        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d*0.5)))
+        self.currentZoom = math.max(-15, math.min(4, self.currentZoom + (d * 0.5)))
         self:SetPosition(self.currentZoom, 0, 0)
     end)
 end
@@ -98,7 +96,9 @@ end
 -- PUBLIC API: Show a specific mob
 function NS.UI.Details.ShowMob(npcID)
     local data = MobCompendiumDB[npcID]
-    if not data then return end
+    if not data then
+        return
+    end
 
     -- Text Updates
     nameText:SetText(data.name)
@@ -119,13 +119,14 @@ function NS.UI.Details.ShowMob(npcID)
     if rConfig.icon then
         rankIcon:Show()
         rankIcon:SetTexture(rConfig.icon)
-        if rConfig.coords then rankIcon:SetTexCoord(unpack(rConfig.coords)) end
-        rankIcon:SetVertexColor(unpack(rConfig.color or {1, 1, 1}))
+        if rConfig.coords then
+            rankIcon:SetTexCoord(unpack(rConfig.coords))
+        end
+        rankIcon:SetVertexColor(unpack(rConfig.color or { 1, 1, 1 }))
     else
         rankIcon:Hide()
     end
-
-    -- Model Updates
+    
     modelView:SetCreature(npcID)
     modelView.currentZoom = 0
     modelView:SetFacing(0)
