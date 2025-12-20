@@ -1,6 +1,6 @@
 ## Interface: 110207
 ## Title: MobCompendium
-## Notes: A barebones monster compendium backend.
+## Notes: A World of Warcraft Addon that acts as a living compendium for mobs you slay.
 ## Author: Michael Zauchinger
 ## Version: 0.3
 ## SavedVariables: MobCompendiumDB
