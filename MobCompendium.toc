@@ -2,7 +2,11 @@
 ## Title: MobCompendium
 ## Notes: A barebones monster compendium backend.
 ## Author: Michael Zauchinger
-## Version: 0.1
+## Version: 0.3
 ## SavedVariables: MobCompendiumDB
 
-core.lua
+Constants.lua
+UI\Details.lua
+UI\List.lua
+UI\Main.lua
+Core.lua
