@@ -8,14 +8,9 @@ local buttons = {}
 function NS.UI.SpellList.Init(parent, anchorTop)
     local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
 
-    -- FIXED ANCHORING:
-    -- 1. Top: 5px below the Title
     scrollFrame:SetPoint("TOP", anchorTop, "BOTTOM", 0, -5)
-    -- 2. Left: 10px from the Panel's Left edge
     scrollFrame:SetPoint("LEFT", parent, "LEFT", 10, 0)
-    -- 3. Right: -30px from Panel's Right edge
     scrollFrame:SetPoint("RIGHT", parent, "RIGHT", -30, 0)
-    -- 4. Bottom: 10px from the Panel's Bottom edge
     scrollFrame:SetPoint("BOTTOM", parent, "BOTTOM", 0, 10)
 
     scrollChild = CreateFrame("Frame")

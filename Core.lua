@@ -1,4 +1,4 @@
-local _, NS = ... -- Grab the private namespace
+local _, NS = ...
 local frame = CreateFrame("Frame")
 local recentTags = {}
 local lootCache = {}      -- Tracks scanned corpses (GUIDs)
@@ -32,7 +32,7 @@ local function GetUnitToken(targetGUID)
 end
 
 local function ResolveRank(unitToken)
-    -- NEW: Check for Battle Pet status first
+
     if UnitIsWildBattlePet(unitToken) then
         return "wildpet"
     end

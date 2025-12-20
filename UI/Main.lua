@@ -18,7 +18,7 @@ function NS.ResetUI()
     end
     if NS.UI.RightColumn then
         NS.UI.RightColumn.Reset()
-    end -- Changed
+    end
 end
 
 function NS.CreateUI()
@@ -76,7 +76,7 @@ function NS.CreateUI()
     end
     if NS.UI.RightColumn then
         NS.UI.RightColumn.Init(mainFrame)
-    end -- Changed
+    end
 end
 
 function NS.ToggleUI()

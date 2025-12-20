@@ -47,7 +47,8 @@ end
 -- INITIALIZATION
 -- =========================================================================
 function NS.UI.Loot.Init(mainFrame)
-    -- 1. Main Container (Right Column)
+    
+    -- 1. CONTAINER (Right Column)
     local rightPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     rightPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -4, -22)
     rightPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 4)
@@ -70,7 +71,7 @@ function NS.UI.Loot.Init(mainFrame)
     local lootScroll = CreateFrame("ScrollFrame", nil, rightPanel, "UIPanelScrollFrameTemplate")
     lootScroll:SetPoint("TOPLEFT", rightPanel, "TOPLEFT", 10, -40)
     lootScroll:SetPoint("RIGHT", rightPanel, "RIGHT", -30, 0)
-    lootScroll:SetHeight(230) -- Top half height
+    lootScroll:SetHeight(230)
 
     lootScrollChild = CreateFrame("Frame")
     lootScrollChild:SetSize(260, 1)
@@ -192,7 +193,6 @@ local function UpdateSpellList(data)
         btn:Show()
         btn:SetPoint("TOPLEFT", 0, -height)
 
-        -- FIX: Use C_Spell.GetSpellInfo API (Returns a table now)
         local spellInfo = C_Spell.GetSpellInfo(spellID)
 
         if spellInfo then
@@ -229,7 +229,6 @@ local function UpdateSpellList(data)
     spellScrollChild:SetHeight(height)
 end
 
--- MAIN UPDATE FUNCTION
 function NS.UI.Loot.Update(npcID)
     local data = MobCompendiumDB[npcID]
     UpdateLootList(data)

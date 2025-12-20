@@ -144,8 +144,7 @@ function NS.UI.List.Update()
     -- 3. Render Buttons (Pooling)
     local heightAccumulator = 0
     for i, item in ipairs(displayList) do
-        -- FIX: Capture the item for this iteration specifically
-        -- In Lua 5.1 (WoW), loop variables are shared, so we must localize them for closures.
+
         local thisItem = item
 
         local btn = buttons[i]
@@ -230,8 +229,7 @@ function NS.UI.List.Update()
                     selectedNpcID = thisItem.id
                     NS.UI.List.Update()
                     NS.UI.Details.ShowMob(thisItem.id)
-
-                    -- Changed to call the Container update
+                    
                     if NS.UI.RightColumn then
                         NS.UI.RightColumn.Update(thisItem.id)
                     end

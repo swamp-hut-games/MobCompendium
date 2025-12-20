@@ -117,7 +117,6 @@ function NS.UI.Details.Init(mainFrame)
             local newX = self.startPanX + deltaX
             local newY = self.startPanY + deltaY
 
-            -- UPDATED: Increased clamp limit from 2.0 to 8.0
             local clampLimit = 8.0
             newX = math.max(-clampLimit, math.min(clampLimit, newX))
             newY = math.max(-clampLimit, math.min(clampLimit, newY))

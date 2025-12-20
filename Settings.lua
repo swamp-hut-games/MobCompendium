@@ -12,7 +12,6 @@ function NS.InitSettings()
     if not MobCompendiumDB.settings then
         MobCompendiumDB.settings = CopyTable(defaultSettings)
     else
-        -- Backfill new defaults for existing users (e.g. if they updated from v0.3)
         for k, v in pairs(defaultSettings) do
             if MobCompendiumDB.settings[k] == nil then
                 MobCompendiumDB.settings[k] = v
@@ -45,15 +44,14 @@ function NS.InitSettings()
     cbLock:SetScript("OnClick", function(self)
         local isChecked = self:GetChecked()
         MobCompendiumDB.settings.lockWindow = isChecked
-
-        -- Apply immediately
+        
         local win = _G["MobCompendiumMainWindow"]
         if win then
             win:SetMovable(not isChecked)
             if isChecked then
-                win:RegisterForDrag() -- Disable drag
+                win:RegisterForDrag() 
             else
-                win:RegisterForDrag("LeftButton") -- Enable drag
+                win:RegisterForDrag("LeftButton")
             end
         end
     end)

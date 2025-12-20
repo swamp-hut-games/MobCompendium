@@ -29,7 +29,6 @@ function NS.UI.RightColumn.Init(mainFrame)
     local divider = rightPanel:CreateTexture(nil, "ARTWORK")
     divider:SetColorTexture(1, 1, 1, 0.2)
     divider:SetHeight(1)
-    -- Position: Middle of the panel
     divider:SetPoint("LEFT", 10, 0)
     divider:SetPoint("RIGHT", -10, 0)
     divider:SetPoint("TOP", rightPanel, "TOP", 0, -280)
@@ -41,7 +40,6 @@ function NS.UI.RightColumn.Init(mainFrame)
     spellTitle:SetTextColor(1, 0.82, 0)
 
     -- 5. Initialize Sub-Modules
-    -- We pass the 'rightPanel' as the parent so they anchor inside it.
     if NS.UI.LootList then
         NS.UI.LootList.Init(rightPanel, lootTitle, divider)
     end
@@ -51,7 +49,7 @@ function NS.UI.RightColumn.Init(mainFrame)
     end
 end
 
--- Master Reset
+-- Reset
 function NS.UI.RightColumn.Reset()
     if NS.UI.LootList then
         NS.UI.LootList.Reset()
@@ -61,7 +59,7 @@ function NS.UI.RightColumn.Reset()
     end
 end
 
--- Master Update
+-- Update
 function NS.UI.RightColumn.Update(npcID)
     local data = MobCompendiumDB[npcID]
 

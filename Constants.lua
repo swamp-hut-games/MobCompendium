@@ -1,4 +1,4 @@
-﻿local _, NS = ... -- Grab the private namespace
+﻿local _, NS = ...
 
 -- Rank Configuration
 NS.RANK_CONFIG = {
