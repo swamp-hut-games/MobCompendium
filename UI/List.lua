@@ -87,7 +87,6 @@ function NS.UI.List.Init(mainFrame)
         self:ClearFocus()
     end)
 
-    -- Search Throttle
     searchBox:SetScript("OnTextChanged", function(self)
         if searchTimer then
             searchTimer:Cancel()
@@ -167,12 +166,14 @@ function NS.UI.List.Update()
             for _, mob in ipairs(zoneData.mobs) do
                 table.insert(displayList, { type = "MOB", name = mob.name, id = mob.id, rank = mob.rank })
             end
-            table.insert(displayList, { type = "SPACER", height = 10 })
+            table.insert(displayList, { type = "SPACER", height = 12 })
         end
     end
 
     -- 3. Render Buttons (Pooling)
     local heightAccumulator = 0
+    local itemSpacing = 1
+
     for i, item in ipairs(displayList) do
 
         local thisItem = item
@@ -227,7 +228,8 @@ function NS.UI.List.Update()
                     btn.highlight:Show();
                     btn.highlight:SetColorTexture(1, 0.82, 0, 0.1)
                 end
-                heightAccumulator = heightAccumulator + 26
+
+                heightAccumulator = heightAccumulator + 26 + itemSpacing
             else
                 -- MOB ROW
                 local rConfig = NS.RANK_CONFIG[thisItem.rank or "normal"]
@@ -268,7 +270,7 @@ function NS.UI.List.Update()
 
                 btn:EnableMouse(true);
                 btn.highlight:Show()
-                heightAccumulator = heightAccumulator + 18
+                heightAccumulator = heightAccumulator + 18 + itemSpacing
             end
         end
     end
