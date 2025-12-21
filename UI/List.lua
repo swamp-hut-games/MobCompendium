@@ -83,11 +83,22 @@ function NS.UI.List.Init(mainFrame)
     searchBox:SetPoint("TOP", listBgFrame, "TOP", 0, -12)
     searchBox:SetAutoFocus(false)
     searchBox:SetFontObject("ChatFontNormal")
+    
+    searchBox.placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    searchBox.placeholder:SetPoint("LEFT", 4, 0)
+    searchBox.placeholder:SetText("Search Mobs...")
+
     searchBox:SetScript("OnEscapePressed", function(self)
         self:ClearFocus()
     end)
 
     searchBox:SetScript("OnTextChanged", function(self)
+        if self:GetText() ~= "" then
+            self.placeholder:Hide()
+        else
+            self.placeholder:Show()
+        end
+        
         if searchTimer then
             searchTimer:Cancel()
         end
@@ -270,6 +281,7 @@ function NS.UI.List.Update()
 
                 btn:EnableMouse(true);
                 btn.highlight:Show()
+
                 heightAccumulator = heightAccumulator + 18 + itemSpacing
             end
         end
