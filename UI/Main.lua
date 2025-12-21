@@ -28,26 +28,24 @@ function NS.CreateUI()
 
     mainFrame = CreateFrame("Frame", "MobCompendiumMainWindow", UIParent, "BasicFrameTemplateWithInset")
     mainFrame:SetSize(1150, 600)
-
+    
     if MobCompendiumDB and MobCompendiumDB.windowPos then
         local pos = MobCompendiumDB.windowPos
         mainFrame:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
     else
         mainFrame:SetPoint("CENTER")
     end
-
-    local isLocked = MobCompendiumDB.settings and MobCompendiumDB.settings.lockWindow
-    mainFrame:SetMovable(not isLocked)
+    
+    mainFrame:SetMovable(true)
     mainFrame:EnableMouse(true)
-    if not isLocked then
-        mainFrame:RegisterForDrag("LeftButton")
-    end
+    mainFrame:RegisterForDrag("LeftButton")
 
     mainFrame:SetScript("OnDragStart", function(self)
         if not MobCompendiumDB.settings.lockWindow then
             self:StartMoving()
         end
     end)
+
     mainFrame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing();
         local p, _, rp, x, y = self:GetPoint();
