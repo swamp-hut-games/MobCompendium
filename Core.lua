@@ -231,7 +231,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         end
                     end
 
-                    local _, instanceType = GetInstanceInfo()
+                    local _, instanceType, _, difficultyName = GetInstanceInfo()
                     local currentTime = date("%Y-%m-%d %H:%M")
 
                     if not MobCompendiumDB[npcID] then
@@ -244,6 +244,8 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                             lastX = posX, lastY = posY,
                             lastTime = currentTime,
                             instType = instanceType,
+                            diffName = difficultyName,
+                            mapID = mapID,
                             drops = {},
                             spells = {}
                         }
@@ -265,6 +267,8 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         entry.lastY = posY
                         entry.lastTime = currentTime
                         entry.instType = instanceType
+                        entry.diffName = difficultyName
+                        entry.mapID = mapID
 
                         -- DATA HEALING
                         local dbRank = entry.rank or "unknown"

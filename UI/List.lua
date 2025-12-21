@@ -9,21 +9,59 @@ local expandedZones = {}
 local selectedNpcID = nil
 local searchTimer = nil
 
-local function ToggleZoneHeader(zoneName)
-    local isExpanding = not expandedZones[zoneName]
+local function GetZoneKey(data)
+    local z = data.zone or "Unknown Zone"
+    local t = data.instType or "none"
+    local d = data.diffName
+    local mapID = data.mapID
+
+    local suffix = ""
+
+    if t == "party" then
+        suffix = " (Dungeon)"
+        if d and d ~= "" and d ~= "Normal" then
+            suffix = " (" .. d .. " Dungeon)"
+        end
+    elseif t == "raid" then
+        suffix = " (Raid)"
+        if d and d ~= "" then
+            suffix = " (" .. d .. " Raid)"
+        end
+    elseif t == "scenario" then
+        suffix = " (Scenario)"
+        if d and d ~= "" and d ~= "Normal" then
+            suffix = " (" .. d .. " Scenario)"
+        end
+    elseif t == "pvp" or t == "arena" then
+        suffix = " (PvP)"
+    elseif t == "none" and mapID then
+        local mapInfo = C_Map.GetMapInfo(mapID)
+        if mapInfo and mapInfo.parentMapID then
+            local parentInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+            if parentInfo and parentInfo.name then
+                suffix = " (" .. parentInfo.name .. ")"
+            end
+        end
+    end
+
+    return z .. suffix, t
+end
+
+local function ToggleZoneHeader(zoneUniqueKey)
+    local isExpanding = not expandedZones[zoneUniqueKey]
     if IsAltKeyDown() then
         if isExpanding then
             for id, data in pairs(MobCompendiumDB) do
                 if type(id) == "number" then
-                    local z = data.zone or "Unknown Zone"
-                    expandedZones[z] = true
+                    local key, _ = GetZoneKey(data)
+                    expandedZones[key] = true
                 end
             end
         else
             expandedZones = {}
         end
     else
-        expandedZones[zoneName] = isExpanding
+        expandedZones[zoneUniqueKey] = isExpanding
     end
 end
 
@@ -75,7 +113,6 @@ function NS.UI.List.Reset()
     NS.UI.List.Update()
 end
 
--- PUBLIC API: Refresh the scroll view
 function NS.UI.List.Update()
     if not scrollChild or not scrollChild:IsVisible() then
         return
@@ -90,43 +127,36 @@ function NS.UI.List.Update()
 
     for id, data in pairs(MobCompendiumDB) do
         if type(id) == "number" then
-            local z = data.zone or "Unknown Zone"
             local mobName = strlower(data.name or "")
 
             if not isSearching or string.find(mobName, searchText, 1, true) then
-                if not zones[z] then
-                    zones[z] = { mobs = {}, type = "none" }
+
+                local zoneKey, instType = GetZoneKey(data)
+
+                if not zones[zoneKey] then
+                    zones[zoneKey] = { mobs = {}, type = instType }
                 end
 
-                local mType = data.instType or "none"
-                if mType == "raid" then
-                    zones[z].type = "raid"
-                elseif mType == "party" and zones[z].type ~= "raid" then
-                    zones[z].type = "party"
-                elseif mType == "scenario" and zones[z].type == "none" then
-                    zones[z].type = "scenario"
-                end
-
-                table.insert(zones[z].mobs, { id = id, name = data.name, rank = data.rank or "normal" })
+                table.insert(zones[zoneKey].mobs, { id = id, name = data.name, rank = data.rank or "normal" })
             end
         end
     end
 
     -- 2. Sort & Build List
     local sortedZones = {}
-    for zName, _ in pairs(zones) do
-        table.insert(sortedZones, zName)
+    for zKey, _ in pairs(zones) do
+        table.insert(sortedZones, zKey)
     end
     table.sort(sortedZones)
 
-    for _, zName in ipairs(sortedZones) do
-        local zoneData = zones[zName]
+    for _, zKey in ipairs(sortedZones) do
+        local zoneData = zones[zKey]
         local count = #zoneData.mobs
-        local isExpanded = isSearching or expandedZones[zName]
+        local isExpanded = isSearching or expandedZones[zKey]
 
         table.insert(displayList, {
-            type = "HEADER", name = zName .. " (" .. count .. ")",
-            rawZone = zName, instType = zoneData.type
+            type = "HEADER", name = zKey .. " (" .. count .. ")",
+            rawZone = zKey, instType = zoneData.type
         })
 
         if isExpanded then
@@ -146,7 +176,6 @@ function NS.UI.List.Update()
     for i, item in ipairs(displayList) do
 
         local thisItem = item
-
         local btn = buttons[i]
         if not btn then
             btn = CreateFrame("Button", nil, scrollChild)
@@ -171,7 +200,9 @@ function NS.UI.List.Update()
             btn:SetWidth(260)
 
             if thisItem.type == "HEADER" then
+
                 local zConfig = NS.ZONE_ICONS[thisItem.instType or "none"] or NS.ZONE_ICONS["none"]
+
                 btn:SetHeight(26)
                 btn.icon:SetPoint("LEFT", 5, 0);
                 btn.icon:Show();
@@ -229,12 +260,12 @@ function NS.UI.List.Update()
                     selectedNpcID = thisItem.id
                     NS.UI.List.Update()
                     NS.UI.Details.ShowMob(thisItem.id)
-                    
+
                     if NS.UI.RightColumn then
                         NS.UI.RightColumn.Update(thisItem.id)
                     end
                 end)
-                
+
                 btn:EnableMouse(true);
                 btn.highlight:Show()
                 heightAccumulator = heightAccumulator + 18
