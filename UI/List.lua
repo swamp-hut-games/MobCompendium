@@ -104,39 +104,44 @@ function NS.UI.List.Update()
             local mobName = strlower(mobData.name or "")
 
             if not isSearching or string.find(mobName, searchText, 1, true) then
-                
+
                 if mobData.encounters then
                     for mapID, encounter in pairs(mobData.encounters) do
 
                         local pKey = encounter.parentMap or "Uncategorized"
-                        local zKey = encounter.zoneName or "Unknown Zone"
-                        
-                        if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
-                            pKey = pKey .. " [" .. encounter.diffName .. "]"
-                        end
 
-                        if not hierarchy[pKey] then
-                            hierarchy[pKey] = { zones = {}, type = (encounter.instType or "none") }
-                        end
+                        -- HIDE "UNCATEGORIZED":
+                        -- Only process this encounter if we actually have a valid parent.
+                        if pKey ~= "Uncategorized" then
 
-                        if not hierarchy[pKey].zones[zKey] then
-                            hierarchy[pKey].zones[zKey] = { mobs = {} }
-                        end
+                            local zKey = encounter.zoneName or "Unknown Zone"
 
-                        -- Add Mob to this Zone's list
-                        table.insert(hierarchy[pKey].zones[zKey].mobs, {
-                            id = id,
-                            name = mobData.name,
-                            rank = encounter.rank or "normal",
-                            mapID = mapID
-                        })
+                            if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
+                                pKey = pKey .. " [" .. encounter.diffName .. "]"
+                            end
+
+                            if not hierarchy[pKey] then
+                                hierarchy[pKey] = { zones = {}, type = (encounter.instType or "none") }
+                            end
+
+                            if not hierarchy[pKey].zones[zKey] then
+                                hierarchy[pKey].zones[zKey] = { mobs = {} }
+                            end
+
+                            table.insert(hierarchy[pKey].zones[zKey].mobs, {
+                                id = id,
+                                name = mobData.name,
+                                rank = encounter.rank or "normal",
+                                mapID = mapID
+                            })
+                        end
                     end
                 end
             end
         end
     end
 
-    -- 2. Sort & Flatten for Display
+    -- 2. Sort & Flatten for Display (Rest remains the same)
     local sortedParents = {}
     for pKey, _ in pairs(hierarchy) do
         table.insert(sortedParents, pKey)
@@ -299,7 +304,7 @@ function NS.UI.List.Update()
                     if NS.UI.RightColumn then
                         NS.UI.RightColumn.Update(item.id)
                     end
-                    
+
                 end)
             end
 

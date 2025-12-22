@@ -195,7 +195,7 @@ function NS.UI.Details.ShowMob(npcID, mapID)
             lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", locData.lastX, locData.lastY, timeStr))
             lastKillText:Show()
         else
-            lastKillText:SetText("Last Seen: " .. timeStr)
+            lastKillText:SetText("Last Kill: " .. timeStr)
             lastKillText:Show()
         end
     else
