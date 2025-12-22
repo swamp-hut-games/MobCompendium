@@ -325,7 +325,7 @@ local function OnCombatUnitDied(destGUID, destName)
                     parentMapName = nil
                 end
             end
-            
+
             if parentMapName == zoneName then
                 zoneName = "General"
             end
@@ -344,13 +344,14 @@ local function OnCombatUnitDied(destGUID, destName)
                 end
             end
 
-            local posX, posY = 0, 0
+            local posX, posY = nil, nil
             if mapID then
                 local pos = C_Map.GetPlayerMapPosition(mapID, "player")
                 if pos then
                     posX, posY = pos.x * 100, pos.y * 100
                 end
             end
+            
             local currentTime = date("%Y-%m-%d %H:%M")
 
             local encounterKey = mapID

@@ -138,7 +138,7 @@ function NS.UI.Details.ShowMob(npcID, mapID)
     end
 
     nameText:SetText(data.name)
-    
+
     local totalKills = 0
     local specificKills = 0
     local displayRank = "unknown"
@@ -189,10 +189,15 @@ function NS.UI.Details.ShowMob(npcID, mapID)
         locData = data.encounters[mapID]
     end
 
-    if locData and locData.lastX and locData.lastY then
-        local locName = locData.zoneName or "Unknown"
-        lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", locData.lastX, locData.lastY, locData.lastTime or "?"))
-        lastKillText:Show()
+    if locData then
+        local timeStr = locData.lastTime or "?"
+        if locData.lastX and locData.lastY then
+            lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", locData.lastX, locData.lastY, timeStr))
+            lastKillText:Show()
+        else
+            lastKillText:SetText("Last Seen: " .. timeStr)
+            lastKillText:Show()
+        end
     else
         lastKillText:Hide()
     end
