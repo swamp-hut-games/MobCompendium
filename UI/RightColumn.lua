@@ -5,7 +5,7 @@ NS.UI.RightColumn = {}
 local rightPanel
 
 function NS.UI.RightColumn.Init(mainFrame)
-    -- 1. Create the Main Background Container
+
     rightPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     rightPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -4, -22)
     rightPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 4)
@@ -19,13 +19,11 @@ function NS.UI.RightColumn.Init(mainFrame)
     })
     rightPanel:SetBackdropColor(0.25, 0.25, 0.25, 1)
 
-    -- 2. LOOT HEADER
     local lootTitle = rightPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     lootTitle:SetPoint("TOP", rightPanel, "TOP", 0, -12)
     lootTitle:SetText("Known Loot")
     lootTitle:SetTextColor(1, 0.82, 0)
 
-    -- 3. DIVIDER (Visual separation)
     local divider = rightPanel:CreateTexture(nil, "ARTWORK")
     divider:SetColorTexture(1, 1, 1, 0.2)
     divider:SetHeight(1)
@@ -33,13 +31,11 @@ function NS.UI.RightColumn.Init(mainFrame)
     divider:SetPoint("RIGHT", -10, 0)
     divider:SetPoint("TOP", rightPanel, "TOP", 0, -280)
 
-    -- 4. SPELL HEADER
     local spellTitle = rightPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     spellTitle:SetPoint("TOP", divider, "BOTTOM", 0, -15)
     spellTitle:SetText("Known Abilities")
     spellTitle:SetTextColor(1, 0.82, 0)
 
-    -- 5. Initialize Sub-Modules
     if NS.UI.LootList then
         NS.UI.LootList.Init(rightPanel, lootTitle, divider)
     end
@@ -49,7 +45,6 @@ function NS.UI.RightColumn.Init(mainFrame)
     end
 end
 
--- Reset
 function NS.UI.RightColumn.Reset()
     if NS.UI.LootList then
         NS.UI.LootList.Reset()
@@ -59,7 +54,6 @@ function NS.UI.RightColumn.Reset()
     end
 end
 
--- Update
 function NS.UI.RightColumn.Update(npcID)
     local data = MobCompendiumDB[npcID]
 

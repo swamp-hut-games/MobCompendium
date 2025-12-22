@@ -42,7 +42,6 @@ function NS.UI.LootList.Update(data)
     for i, itemID in ipairs(list) do
         local btn = buttons[i]
         if not btn then
-            -- Reusing the standard button creation logic
             btn = CreateFrame("Button", nil, scrollChild)
             btn:SetSize(260, 44)
             btn.icon = btn:CreateTexture(nil, "ARTWORK");
@@ -68,8 +67,7 @@ function NS.UI.LootList.Update(data)
         btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         btn.name:SetText("Loading...")
         btn.name:SetTextColor(1, 1, 1)
-
-        -- Load Item
+        
         local item = Item:CreateFromItemID(itemID)
         item:ContinueOnItemLoad(function()
             local itemName, _, quality, _, _, _, _, _, _, icon = GetItemInfo(itemID)
@@ -82,8 +80,7 @@ function NS.UI.LootList.Update(data)
                 btn.name:SetText("Unknown Item")
             end
         end)
-
-        -- Interactions
+        
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
             GameTooltip:SetItemByID(itemID);
