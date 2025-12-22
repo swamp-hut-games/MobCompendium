@@ -12,16 +12,13 @@ local searchTimer = nil
 local function GetZoneKey(data)
     local z = data.zone or "Unknown Zone"
     local t = data.instType or "none"
-    local d = data.diffName -- "N", "H", "M"
+    local d = data.diffName
 
     local suffix = ""
 
-    -- Case 1: Instance -> Show Difficulty
     if t ~= "none" and d and d ~= "" then
         suffix = " (" .. d .. ")"
     end
-
-    -- Case 2: World -> We do NOT show the parent map anymore as requested.
 
     return z .. suffix, t
 end
@@ -201,8 +198,6 @@ function NS.UI.List.Update()
                 btn.icon:SetVertexColor(unpack(zConfig.color))
                 btn.text:SetPoint("LEFT", 25, 0);
                 btn.text:SetFontObject("GameFontNormal");
-
-                -- Render the name: "Isle of Dorn (5)"
                 btn.text:SetText(thisItem.name);
                 btn.text:SetTextColor(1, 0.82, 0, 1)
 
@@ -223,7 +218,6 @@ function NS.UI.List.Update()
 
                 heightAccumulator = heightAccumulator + 26 + itemSpacing
             else
-                -- MOB ROW
                 local rConfig = NS.RANK_CONFIG[thisItem.rank or "normal"]
                 btn:SetHeight(18)
                 btn.icon:SetPoint("LEFT", 20, 0)

@@ -198,7 +198,7 @@ end
 -- Gets called everytime a combat log event happens
 local function OnCombatLogEvent()
 
-    local _, subEvent, _, sourceGUID, _, _, _, destGUID, destName, _, _, spellID = CombatLogGetCurrentEventInfo()
+    local _, subEvent, _, sourceGUID, _, sourceFlags, _, destGUID, destName, _, _, spellID = CombatLogGetCurrentEventInfo()
 
     if subEvent == "SPELL_CAST_START" or subEvent == "SPELL_CAST_SUCCESS" then
         local unitType, _, _, _, _, npcID = strsplit("-", sourceGUID)
@@ -207,7 +207,20 @@ local function OnCombatLogEvent()
         end
     end
 
-    if sourceGUID == UnitGUID("player") or sourceGUID == UnitGUID("pet") then
+    local isGroup = false
+
+    if sourceFlags then
+        local AFFILIATION_GROUP = bit.bor(
+                COMBATLOG_OBJECT_AFFILIATION_MINE,
+                COMBATLOG_OBJECT_AFFILIATION_PARTY,
+                COMBATLOG_OBJECT_AFFILIATION_RAID
+        )
+        if bit.band(sourceFlags, AFFILIATION_GROUP) > 0 then
+            isGroup = true
+        end
+    end
+
+    if isGroup then
         if string.find(subEvent, "_DAMAGE") or string.find(subEvent, "_MISSED") or string.find(subEvent, "SPELL_AURA") then
             local unitType = strsplit("-", destGUID)
             if unitType == "Creature" then
@@ -232,9 +245,9 @@ local function OnCombatLogEvent()
         local unitType, _, _, _, _, npcID = strsplit("-", destGUID)
         if unitType == "Creature" then
             local tagData = recentTags[destGUID]
-            local isTaggedByMe = tagData and (GetTime() - tagData.time < 60)
+            local isTagged = tagData and (GetTime() - tagData.time < 60)
 
-            if isTaggedByMe then
+            if isTagged then
                 npcID = tonumber(npcID)
 
                 local capturedRank = tagData.rank or "unknown"

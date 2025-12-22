@@ -64,8 +64,7 @@ function NS.CreateUI()
     mainFrame.title:SetFontObject("GameFontHighlight")
     mainFrame.title:SetPoint("LEFT", mainFrame.TitleBg, "LEFT", 5, 0)
     mainFrame.title:SetText("Mob Compendium")
-
-    -- Initialize Modules
+    
     if NS.UI.List then
         NS.UI.List.Init(mainFrame)
     end
