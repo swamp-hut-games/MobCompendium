@@ -7,22 +7,61 @@ local scrollChild, searchBox
 local buttons = {}
 
 -- Expansion State
-local expandedParents = {}   -- "Khaz Algar" = true
-local expandedSubZones = {}  -- "Khaz Algar::The Ringing Deeps" = true
+local expandedParents = {}
+local expandedSubZones = {}
+
+-- New State Helpers
+local visibleParentKeys = {}   -- List of all current parent keys (for Alt+Click)
+local parentToSubZoneKeys = {} -- Map of ParentKey -> List of SubZoneKeys (for Shift+Click)
+local isInitialized = false
 local selectedNpcID = nil
 local searchTimer = nil
 
--- Helper: Create a unique key for subzones to prevent collisions
+-- Create a unique key for subzones to prevent collisions
 local function GetSubZoneKey(parent, zone)
     return parent .. "::" .. zone
 end
 
 local function ToggleParent(parentKey)
+    local parentIsOpen = expandedParents[parentKey]
+
     if IsAltKeyDown() then
-        local isExpanding = not expandedParents[parentKey]
-        expandedParents[parentKey] = isExpanding
+        local targetGlobalState = not parentIsOpen
+
+        for _, pKey in ipairs(visibleParentKeys) do
+            expandedParents[pKey] = targetGlobalState
+
+            if parentToSubZoneKeys[pKey] then
+                for _, sKey in ipairs(parentToSubZoneKeys[pKey]) do
+                    expandedSubZones[sKey] = targetGlobalState
+                end
+            end
+        end
+
+    elseif IsShiftKeyDown() then
+
+        expandedParents[parentKey] = true
+
+        local subKeys = parentToSubZoneKeys[parentKey]
+        if subKeys and #subKeys > 0 then
+
+            local anyChildOpen = false
+            for _, sKey in ipairs(subKeys) do
+                if expandedSubZones[sKey] then
+                    anyChildOpen = true
+                    break
+                end
+            end
+
+            local targetChildState = not anyChildOpen
+
+            for _, sKey in ipairs(subKeys) do
+                expandedSubZones[sKey] = targetChildState
+            end
+        end
+
     else
-        expandedParents[parentKey] = not expandedParents[parentKey]
+        expandedParents[parentKey] = not parentIsOpen
     end
 end
 
@@ -84,6 +123,7 @@ function NS.UI.List.Reset()
     expandedParents = {}
     expandedSubZones = {}
     selectedNpcID = nil
+    isInitialized = false
     NS.UI.List.Update()
 end
 
@@ -92,10 +132,12 @@ function NS.UI.List.Update()
         return
     end
 
+    visibleParentKeys = {}
+    parentToSubZoneKeys = {}
+
     local displayList = {}
     local hierarchy = {}
 
-    -- 1. Filter & Group Data
     local searchText = searchBox and strlower(searchBox:GetText() or "") or ""
     local isSearching = (searchText ~= "")
 
@@ -110,8 +152,6 @@ function NS.UI.List.Update()
 
                         local pKey = encounter.parentMap or "Uncategorized"
 
-                        -- HIDE "UNCATEGORIZED":
-                        -- Only process this encounter if we actually have a valid parent.
                         if pKey ~= "Uncategorized" then
 
                             local zKey = encounter.zoneName or "Unknown Zone"
@@ -141,21 +181,54 @@ function NS.UI.List.Update()
         end
     end
 
-    -- 2. Sort & Flatten for Display (Rest remains the same)
     local sortedParents = {}
     for pKey, _ in pairs(hierarchy) do
         table.insert(sortedParents, pKey)
     end
     table.sort(sortedParents)
 
+    visibleParentKeys = sortedParents
+
+    if not isInitialized then
+
+        -- When the player is logging it, I checked to open the current zone the player is in.
+        local currentZoneName = nil
+        local mapID = C_Map.GetBestMapForUnit("player")
+        if mapID then
+            local mapInfo = C_Map.GetMapInfo(mapID)
+            if mapInfo then
+                currentZoneName = mapInfo.name
+            end
+        end
+
+        for _, pKey in ipairs(sortedParents) do
+
+            expandedParents[pKey] = true
+
+            if hierarchy[pKey] and hierarchy[pKey].zones then
+                for zKey, _ in pairs(hierarchy[pKey].zones) do
+                    if currentZoneName and string.find(zKey, currentZoneName, 1, true) then
+                        local uniqueZKey = GetSubZoneKey(pKey, zKey)
+                        expandedSubZones[uniqueZKey] = true
+                    end
+                end
+            end
+        end
+        isInitialized = true
+    end
+
     for _, pKey in ipairs(sortedParents) do
         local parentData = hierarchy[pKey]
 
         local parentTotal = 0
         local sortedZones = {}
+
+        parentToSubZoneKeys[pKey] = {}
+
         for zKey, zData in pairs(parentData.zones) do
             parentTotal = parentTotal + #zData.mobs
             table.insert(sortedZones, zKey)
+            table.insert(parentToSubZoneKeys[pKey], GetSubZoneKey(pKey, zKey))
         end
         table.sort(sortedZones)
 
