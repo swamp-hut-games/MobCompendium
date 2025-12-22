@@ -31,7 +31,7 @@ function NS.UI.Details.Init(mainFrame)
     typeText:SetTextColor(0.7, 0.7, 0.7)
 
     countText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    countText:SetPoint("TOP", typeText, "BOTTOM", 0, -6)
+    countText:SetPoint("TOP", typeText, "BOTTOM", 0, -16)
     countText:SetTextColor(1, 1, 1)
 
     lastKillText = headerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
