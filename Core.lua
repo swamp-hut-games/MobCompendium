@@ -144,7 +144,6 @@ local function OnPlayerEnterWorld()
 end
 
 -- Gets called whenever the player opens the loot window
--- TODO: When enemy does not have loot, but can be skinned, reagent will track, but NOT if it has loot and can be skinned.
 local function OnLootOpened()
 
     local numItems = GetNumLootItems()
@@ -153,9 +152,13 @@ local function OnLootOpened()
         for i = 1, numItems do
             local sourceGUID = GetLootSourceInfo(i)
 
-            if sourceGUID and not lootCache[sourceGUID] then
+            if sourceGUID then
 
-                -- [unitType]-0-[serverID]-[instanceID]-[zoneUID]-[ID]-[spawnUID]
+                if not lootCache[sourceGUID] then
+                    lootCache[sourceGUID] = {}
+                end
+
+                -- sourceGUID contains: [unitType]-0-[serverID]-[instanceID]-[zoneUID]-[ID]-[spawnUID]
                 local unitType, _, _, _, _, npcID, _ = strsplit("-", sourceGUID)
 
                 if unitType == "Creature" then
@@ -165,41 +168,35 @@ local function OnLootOpened()
                         local link = GetLootSlotLink(i)
 
                         if link then
-
                             local itemID = GetItemInfoInstant(link)
 
                             if itemID then
 
-                                if not MobCompendiumDB[npcID] then
-                                    MobCompendiumDB[npcID] = {
-                                        name = "Unknown (Looted)",
-                                        kills = 0,
-                                        drops = {},
-                                        spells = {}
-                                    }
+                                if not lootCache[sourceGUID][itemID] then
+
+                                    if not MobCompendiumDB[npcID] then
+                                        MobCompendiumDB[npcID] = {
+                                            name = "Unknown (Looted)",
+                                            kills = 0,
+                                            drops = {},
+                                            spells = {}
+                                        }
+                                    end
+
+                                    if not MobCompendiumDB[npcID].drops then
+                                        MobCompendiumDB[npcID].drops = {}
+                                    end
+
+                                    MobCompendiumDB[npcID].drops[itemID] = true
+                                    lootCache[sourceGUID][itemID] = true
+
                                 end
-
-                                if not MobCompendiumDB[npcID].drops then
-                                    MobCompendiumDB[npcID].drops = {}
-                                end
-
-                                MobCompendiumDB[npcID].drops[itemID] = true
-
                             end
                         end
                     end
                 end
             end
         end
-
-        -- Cache loot sources to only process them once (e.g. when aborting looting)
-        for i = 1, numItems do
-            local sourceGUID = GetLootSourceInfo(i)
-            if sourceGUID then
-                lootCache[sourceGUID] = true
-            end
-        end
-
     end
 end
 
@@ -373,7 +370,7 @@ local function OnCombatUnitDied(destGUID, destName)
             if NS.UpdateUI then
                 NS.UpdateUI()
             end
-            
+
         end
     end
 end
