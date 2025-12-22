@@ -127,10 +127,40 @@ local function TagMobs(subEvent, destGUID)
     end
 end
 
+local function GetContinentName(mapID)
+    if not mapID then
+        return nil
+    end
+
+    local currentMapID = mapID
+    local loopSafety = 0
+
+    while currentMapID and loopSafety < 10 do
+        local info = C_Map.GetMapInfo(currentMapID)
+        if not info then
+            break
+        end
+
+        if info.mapType == Enum.UIMapType.Continent then
+            return info.name
+        end
+
+        if info.mapType == Enum.UIMapType.Cosmic or info.mapType == Enum.UIMapType.World then
+            return nil
+        end
+
+        currentMapID = info.parentMapID
+        loopSafety = loopSafety + 1
+    end
+
+    return nil
+end
+
 -- =========================================================================
 -- Event Functions
 -- =========================================================================
 
+-- Gets called once the Addon loads
 local function OnAddonLoaded()
     if MobCompendiumDB == nil then
         MobCompendiumDB = {}
@@ -147,12 +177,14 @@ end
 local function OnLootOpened()
 
     local numItems = GetNumLootItems()
-
     if numItems > 0 then
-        for i = 1, numItems do
-            local sourceGUID = GetLootSourceInfo(i)
 
-            if sourceGUID then
+        local mapID = C_Map.GetBestMapForUnit("player")
+
+        for i = 1, numItems do
+
+            local sourceGUID = GetLootSourceInfo(i)
+            if sourceGUID and mapID then
 
                 if not lootCache[sourceGUID] then
                     lootCache[sourceGUID] = {}
@@ -171,33 +203,36 @@ local function OnLootOpened()
                             local itemID = GetItemInfoInstant(link)
 
                             if itemID then
-
                                 if not lootCache[sourceGUID][itemID] then
 
                                     if not MobCompendiumDB[npcID] then
                                         MobCompendiumDB[npcID] = {
                                             name = "Unknown (Looted)",
-                                            kills = 0,
-                                            drops = {},
+                                            encounters = {},
                                             spells = {}
                                         }
                                     end
 
-                                    if not MobCompendiumDB[npcID].drops then
-                                        MobCompendiumDB[npcID].drops = {}
+                                    if not MobCompendiumDB[npcID].encounters[mapID] then
+                                        MobCompendiumDB[npcID].encounters[mapID] = {
+                                            zoneName = "Unknown (Looted)",
+                                            drops = {},
+                                            kills = 0
+                                        }
                                     end
 
-                                    MobCompendiumDB[npcID].drops[itemID] = true
+                                    MobCompendiumDB[npcID].encounters[mapID].drops[itemID] = true
                                     lootCache[sourceGUID][itemID] = true
-
                                 end
                             end
+
                         end
                     end
                 end
             end
         end
     end
+
 end
 
 local function OnCombatEnemySpellCast(npcID, spellID, sourceGUID)
@@ -217,12 +252,11 @@ local function OnCombatEnemySpellCast(npcID, spellID, sourceGUID)
         end
 
         tempSpellCache[sourceGUID][spellID] = true
-
     end
+
 end
 
 local function OnCombatUnitDied(destGUID, destName)
-
     local unitType, _, _, _, _, npcID = strsplit("-", destGUID)
 
     if unitType == "Creature" then
@@ -234,7 +268,6 @@ local function OnCombatUnitDied(destGUID, destName)
 
             local capturedRank = tagData.rank or "unknown"
             local capturedType = tagData.type
-
             if not capturedType or capturedRank == "unknown" then
                 local token = GetUnitToken(destGUID)
                 if token then
@@ -247,28 +280,35 @@ local function OnCombatUnitDied(destGUID, destName)
                 end
             end
 
+            local mapID = C_Map.GetBestMapForUnit("player")
             local zoneName = "Unknown Zone"
             local parentMapName = nil
 
-            local mapID = C_Map.GetBestMapForUnit("player")
+            if mapID then
+                local mapInfo = C_Map.GetMapInfo(mapID)
+                if mapInfo and mapInfo.name then
+                    zoneName = mapInfo.name
+                end
+            end
+
             local instName, instanceType, _, difficultyName = GetInstanceInfo()
             local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
 
             if isInInstance and instName and instName ~= "" then
-                zoneName = instName
-
-            elseif mapID then
-                local mapInfo = C_Map.GetMapInfo(mapID)
-                if mapInfo and mapInfo.name then
-                    zoneName = mapInfo.name
-
-                    if mapInfo.parentMapID then
-                        local parentInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
-                        if parentInfo and parentInfo.name then
-                            parentMapName = parentInfo.name
+                parentMapName = instName
+                if zoneName == "Unknown Zone" then
+                    zoneName = instName
+                end
+            else
+                parentMapName = GetContinentName(mapID)
+                if not parentMapName and mapID then
+                    local mapInfo = C_Map.GetMapInfo(mapID)
+                    if mapInfo and mapInfo.parentMapID then
+                        local pInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+                        if pInfo then
+                            parentMapName = pInfo.name
                         end
                     end
-
                 end
             end
 
@@ -279,12 +319,18 @@ local function OnCombatUnitDied(destGUID, destName)
                     zoneName = "Unknown Zone"
                 end
             end
-
             if parentMapName then
                 parentMapName = parentMapName:gsub("%s*%(Surface%)", "")
                 if string.match(parentMapName, "^%d") then
                     parentMapName = nil
                 end
+            end
+
+            if parentMapName == zoneName then
+                zoneName = "General"
+            end
+            if not parentMapName then
+                parentMapName = "Unknown Region"
             end
 
             local shortDiff = ""
@@ -305,24 +351,13 @@ local function OnCombatUnitDied(destGUID, destName)
                     posX, posY = pos.x * 100, pos.y * 100
                 end
             end
-
             local currentTime = date("%Y-%m-%d %H:%M")
 
             if not MobCompendiumDB[npcID] then
                 MobCompendiumDB[npcID] = {
                     name = destName,
-                    kills = 1,
-                    zone = zoneName,
-                    parentMap = parentMapName,
-                    rank = capturedRank,
-                    type = capturedType,
-                    lastX = posX, lastY = posY,
-                    lastTime = currentTime,
-                    instType = instanceType,
-                    diffName = shortDiff,
-                    mapID = mapID,
-                    drops = {},
-                    spells = {}
+                    spells = {},
+                    encounters = {}
                 }
 
                 if tempSpellCache[destGUID] then
@@ -334,43 +369,49 @@ local function OnCombatUnitDied(destGUID, destName)
                 if MobCompendiumDB.settings.printNew then
                     print("|cff00ffffMobCompendium:|r Discovered " .. destName .. " (" .. (capturedType or "Unknown") .. ")!")
                 end
-            else
-                local entry = MobCompendiumDB[npcID]
-                entry.kills = entry.kills + 1
-                entry.zone = zoneName
-                entry.parentMap = parentMapName
-                entry.lastX = posX
-                entry.lastY = posY
-                entry.lastTime = currentTime
-                entry.instType = instanceType
-                entry.diffName = shortDiff
-                entry.mapID = mapID
+            end
 
-                -- Killing mobs too quickly (e.g. Critters or Low Level mobs) will not track correctly sometimes
-                -- Players can update the database when killing those exceptions while targeting them.
-                local dbRank = entry.rank or "unknown"
-                if dbRank == "unknown" and capturedRank ~= "unknown" then
-                    entry.rank = capturedRank
-                elseif dbRank == "normal" and (capturedRank ~= "normal" and capturedRank ~= "unknown") then
-                    entry.rank = capturedRank
-                end
+            local entry = MobCompendiumDB[npcID]
 
-                if not entry.type and capturedType then
-                    entry.type = capturedType
-                end
+            if not entry.encounters[mapID] then
+                entry.encounters[mapID] = {
+                    zoneName = zoneName,
+                    parentMap = parentMapName,
+                    instType = instanceType,
+                    diffName = shortDiff,
+                    drops = {},
+                    kills = 0,
+                    rank = capturedRank,
+                    type = capturedType
+                }
+            end
 
-                if MobCompendiumDB.settings.printUpdate then
-                    print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total: " .. entry.kills .. ")")
-                end
+            local sighting = entry.encounters[mapID]
+            sighting.kills = sighting.kills + 1
+            sighting.lastX = posX
+            sighting.lastY = posY
+            sighting.lastTime = currentTime
+            sighting.zoneName = zoneName
+            sighting.parentMap = parentMapName
+
+            if (sighting.rank or "unknown") == "unknown" and capturedRank ~= "unknown" then
+                sighting.rank = capturedRank
+            end
+            if not sighting.type and capturedType then
+                sighting.type = capturedType
+            end
+
+            entry.name = destName
+
+            if MobCompendiumDB.settings.printUpdate then
+                print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total Kills in " .. zoneName .. ": " .. sighting.kills .. ")")
             end
 
             recentTags[destGUID] = nil
             tempSpellCache[destGUID] = nil
-
             if NS.UpdateUI then
                 NS.UpdateUI()
             end
-
         end
     end
 end

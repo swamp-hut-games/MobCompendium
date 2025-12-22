@@ -101,14 +101,11 @@ function NS.UI.Details.Init(mainFrame)
         local cx, cy = GetCursorPosition()
 
         if self.isRotating then
-            -- Rotation Logic
             self:SetFacing(self.startRotation + (cx - self.startX) / 80)
 
         elseif self.isPanning then
-            -- Base sensitivity
-            local baseSensitivity = 80
 
-            -- Dynamic Speed Calculation
+            local baseSensitivity = 80
             local zoomScale = math.max(0.1, (10 - self.currentZoom) / 10)
 
             local deltaX = ((cx - self.startX) / baseSensitivity) * zoomScale
@@ -134,31 +131,73 @@ function NS.UI.Details.Init(mainFrame)
     end)
 end
 
-function NS.UI.Details.ShowMob(npcID)
+function NS.UI.Details.ShowMob(npcID, mapID)
     local data = MobCompendiumDB[npcID]
     if not data then
         return
     end
 
     nameText:SetText(data.name)
+    
+    local totalKills = 0
+    local specificKills = 0
+    local displayRank = "unknown"
+    local displayType = nil
 
-    if data.type then
-        typeText:SetText(data.type)
+    local lastSeenEntry = nil
+    local latestTimeStr = ""
+
+    if data.encounters then
+        for mID, encounter in pairs(data.encounters) do
+            totalKills = totalKills + (encounter.kills or 0)
+
+            if mapID and mapID == mID then
+                specificKills = encounter.kills
+            end
+
+            if (mapID and mapID == mID) or (not mapID and displayRank == "unknown") then
+                if encounter.rank then
+                    displayRank = encounter.rank
+                end
+                if encounter.type then
+                    displayType = encounter.type
+                end
+            end
+
+            if encounter.lastTime and encounter.lastTime > latestTimeStr then
+                latestTimeStr = encounter.lastTime
+                lastSeenEntry = encounter
+            end
+        end
+    end
+
+    if displayType then
+        typeText:SetText(displayType)
         typeText:Show()
     else
         typeText:Hide()
     end
 
-    countText:SetText("Killed: " .. data.kills)
+    if mapID and specificKills > 0 then
+        countText:SetText("Killed: " .. specificKills)
+    else
+        countText:SetText("Killed: " .. totalKills)
+    end
 
-    if data.lastTime and data.lastX and data.lastY then
-        lastKillText:SetText(string.format("Loc: %.1f, %.1f  (%s)", data.lastX, data.lastY, data.lastTime))
+    local locData = lastSeenEntry
+    if mapID and data.encounters and data.encounters[mapID] then
+        locData = data.encounters[mapID]
+    end
+
+    if locData and locData.lastX and locData.lastY then
+        local locName = locData.zoneName or "Unknown"
+        lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", locData.lastX, locData.lastY, locData.lastTime or "?"))
         lastKillText:Show()
     else
         lastKillText:Hide()
     end
 
-    local rKey = data.rank or "unknown"
+    local rKey = displayRank or "unknown"
     local rConfig = NS.RANK_CONFIG[rKey] or NS.RANK_CONFIG["unknown"]
     rankText:SetText(rConfig.text)
 
@@ -176,11 +215,9 @@ function NS.UI.Details.ShowMob(npcID)
     modelView.currentZoom = 0
     modelView.panX = 0
     modelView.panY = 0
-
     modelView:SetFacing(0)
     modelView:SetPosition(0, 0, 0)
     modelView:SetCreature(npcID)
-
 end
 
 function NS.UI.Details.Reset()

@@ -28,12 +28,30 @@ function NS.UI.LootList.Update(data)
     for _, btn in pairs(buttons) do
         btn:Hide()
     end
-    if not data or not data.drops then
+
+    if not data or not data.encounters then
+        return
+    end
+
+    -- 1. Collect Drops from ALL encounters
+    local uniqueDrops = {}
+    local hasLoot = false
+
+    for mapID, encounter in pairs(data.encounters) do
+        if encounter.drops then
+            for itemID, _ in pairs(encounter.drops) do
+                uniqueDrops[itemID] = true
+                hasLoot = true
+            end
+        end
+    end
+
+    if not hasLoot then
         return
     end
 
     local list = {}
-    for id, _ in pairs(data.drops) do
+    for id, _ in pairs(uniqueDrops) do
         table.insert(list, id)
     end
     table.sort(list)
@@ -42,6 +60,7 @@ function NS.UI.LootList.Update(data)
     for i, itemID in ipairs(list) do
         local btn = buttons[i]
         if not btn then
+            -- (Keep your existing button creation code here exactly as it was)
             btn = CreateFrame("Button", nil, scrollChild)
             btn:SetSize(260, 44)
             btn.icon = btn:CreateTexture(nil, "ARTWORK");
@@ -67,7 +86,7 @@ function NS.UI.LootList.Update(data)
         btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         btn.name:SetText("Loading...")
         btn.name:SetTextColor(1, 1, 1)
-        
+
         local item = Item:CreateFromItemID(itemID)
         item:ContinueOnItemLoad(function()
             local itemName, _, quality, _, _, _, _, _, _, icon = GetItemInfo(itemID)
@@ -80,7 +99,7 @@ function NS.UI.LootList.Update(data)
                 btn.name:SetText("Unknown Item")
             end
         end)
-        
+
         btn:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
             GameTooltip:SetItemByID(itemID);
