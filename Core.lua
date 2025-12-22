@@ -4,58 +4,6 @@ local recentTags = {}
 local lootCache = {}      -- Tracks scanned corpses (GUIDs)
 local tempSpellCache = {} -- Temporarily stores spells seen during combat
 
-local function GetUnitToken(targetGUID)
-    if UnitGUID("target") == targetGUID then
-        return "target"
-    end
-    if UnitGUID("mouseover") == targetGUID then
-        return "mouseover"
-    end
-    if UnitGUID("focus") == targetGUID then
-        return "focus"
-    end
-    if UnitGUID("softenemy") == targetGUID then
-        return "softenemy"
-    end
-
-    for i = 1, 40 do
-        local unit = "nameplate" .. i
-        if UnitExists(unit) and UnitGUID(unit) == targetGUID then
-            return unit
-        end
-    end
-    return nil
-end
-
-local function ResolveRank(unitToken)
-    if UnitIsWildBattlePet(unitToken) then
-        return "wildpet"
-    end
-
-    local cType = UnitCreatureType(unitToken)
-    if cType == "Critter" or cType == "Wildtier" then
-        return "critter"
-    end
-
-    local c = UnitClassification(unitToken)
-    if c == "worldboss" then
-        return "boss"
-    end
-    if c == "rareelite" then
-        return "rareelite"
-    end
-    if c == "elite" then
-        return "elite"
-    end
-    if c == "rare" then
-        return "rare"
-    end
-    if c == "minus" then
-        return "minion"
-    end
-    return "normal"
-end
-
 -- =========================================================================
 -- Commands
 -- =========================================================================
@@ -74,6 +22,157 @@ SlashCmdList["MobCompendiumReset"] = function()
 end
 
 -- =========================================================================
+-- Helper Functions
+-- =========================================================================
+
+local function ClearTempCache()
+    lootCache = {}
+    tempSpellCache = {}
+end
+
+local function GetUnitToken(targetGUID)
+
+    if UnitGUID("target") == targetGUID then
+        return "target"
+    end
+
+    if UnitGUID("mouseover") == targetGUID then
+        return "mouseover"
+    end
+
+    if UnitGUID("focus") == targetGUID then
+        return "focus"
+    end
+
+    if UnitGUID("softenemy") == targetGUID then
+        return "softenemy"
+    end
+
+    for i = 1, 40 do
+        local unit = "nameplate" .. i
+        if UnitExists(unit) and UnitGUID(unit) == targetGUID then
+            return unit
+        end
+    end
+
+    return nil
+
+end
+
+-- Gets the unit rank for a unit (e.g. Critter, Elite, Rare)
+local function ResolveRank(unitToken)
+
+    if UnitIsWildBattlePet(unitToken) then
+        return "wildpet"
+    end
+
+    local cType = UnitCreatureType(unitToken)
+
+    if cType == "Critter" then
+        return "critter"
+    end
+
+    local c = UnitClassification(unitToken)
+
+    if c == "worldboss" then
+        return "boss"
+    end
+
+    if c == "rareelite" then
+        return "rareelite"
+    end
+
+    if c == "elite" then
+        return "elite"
+    end
+
+    if c == "rare" then
+        return "rare"
+    end
+
+    if c == "minus" then
+        return "minion"
+    end
+
+    return "normal"
+
+end
+
+-- =========================================================================
+-- Event Functions
+-- =========================================================================
+
+local function OnAddonLoaded()
+    if MobCompendiumDB == nil then
+        MobCompendiumDB = {}
+    end
+    NS.InitSettings()
+    print("|cff00ff00MobCompendium:|r Loaded successfully.")
+end
+
+local function OnPlayerEnterWorld()
+    ClearTempCache()
+end
+
+local function OnLootOpened()
+
+    local numItems = GetNumLootItems()
+
+    if numItems > 0 then
+        for i = 1, numItems do
+            local sourceGUID = GetLootSourceInfo(i)
+
+            if sourceGUID and not lootCache[sourceGUID] then
+
+                -- [unitType]-0-[serverID]-[instanceID]-[zoneUID]-[ID]-[spawnUID]
+                local unitType, _, _, _, _, npcID, _ = strsplit("-", sourceGUID)
+
+                if unitType == "Creature" then
+                    npcID = tonumber(npcID)
+
+                    if GetLootSlotType(i) == Enum.LootSlotType.Item then
+                        local link = GetLootSlotLink(i)
+
+                        if link then
+
+                            local itemID = GetItemInfoInstant(link)
+
+                            if itemID then
+
+                                if not MobCompendiumDB[npcID] then
+                                    MobCompendiumDB[npcID] = {
+                                        name = "Unknown (Looted)",
+                                        kills = 0,
+                                        drops = {},
+                                        spells = {}
+                                    }
+                                end
+
+                                if not MobCompendiumDB[npcID].drops then
+                                    MobCompendiumDB[npcID].drops = {}
+                                end
+
+                                MobCompendiumDB[npcID].drops[itemID] = true
+
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        for i = 1, numItems do
+            local sGUID = GetLootSourceInfo(i)
+            if sGUID then
+                lootCache[sGUID] = true
+            end
+        end
+
+    end
+
+end
+
+-- =========================================================================
 -- Event Handlers
 -- =========================================================================
 
@@ -83,61 +182,19 @@ frame:RegisterEvent("LOOT_OPENED")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 frame:SetScript("OnEvent", function(self, event, arg1)
+
     if event == "ADDON_LOADED" and arg1 == "MobCompendium" then
-        if MobCompendiumDB == nil then
-            MobCompendiumDB = {}
-        end
-        NS.InitSettings()
-        print("|cff00ff00MobCompendium:|r Loaded successfully.")
+        OnAddonLoaded()
         return
     end
 
     if event == "PLAYER_ENTERING_WORLD" then
-        lootCache = {}
-        tempSpellCache = {}
+        OnPlayerEnterWorld()
         return
     end
 
-    -- Loot Tracking
     if event == "LOOT_OPENED" then
-        local numItems = GetNumLootItems()
-        if numItems > 0 then
-            for i = 1, numItems do
-                local sourceGUID = GetLootSourceInfo(i)
-                if sourceGUID and not lootCache[sourceGUID] then
-                    local unitType, _, _, _, _, npcID = strsplit("-", sourceGUID)
-                    if unitType == "Creature" then
-                        npcID = tonumber(npcID)
-                        if GetLootSlotType(i) == 1 then
-                            local link = GetLootSlotLink(i)
-                            if link then
-                                local itemID = GetItemInfoInstant(link)
-                                if itemID then
-                                    if not MobCompendiumDB[npcID] then
-                                        MobCompendiumDB[npcID] = {
-                                            name = "Unknown (Looted)",
-                                            kills = 0,
-                                            drops = {},
-                                            spells = {}
-                                        }
-                                    end
-                                    if not MobCompendiumDB[npcID].drops then
-                                        MobCompendiumDB[npcID].drops = {}
-                                    end
-                                    MobCompendiumDB[npcID].drops[itemID] = true
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            for i = 1, numItems do
-                local sGUID = GetLootSourceInfo(i)
-                if sGUID then
-                    lootCache[sGUID] = true
-                end
-            end
-        end
+        OnLootOpened()
         return
     end
 
@@ -212,7 +269,6 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         end
                     end
 
-                    -- === LOCATION LOGIC (REVISED) ===
                     local zoneName = "Unknown Zone"
                     local parentMapName = nil
 
@@ -220,26 +276,24 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                     local instName, instanceType, _, difficultyName = GetInstanceInfo()
                     local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
 
-                    -- A) INSTANCE: Use Instance Name
                     if isInInstance and instName and instName ~= "" then
                         zoneName = instName
 
-                        -- B) WORLD: Use Map Name & Fetch Parent (Continent)
                     elseif mapID then
                         local mapInfo = C_Map.GetMapInfo(mapID)
                         if mapInfo and mapInfo.name then
                             zoneName = mapInfo.name
 
-                            -- Fetch Parent (e.g., Khaz Algar)
                             if mapInfo.parentMapID then
                                 local parentInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
                                 if parentInfo and parentInfo.name then
                                     parentMapName = parentInfo.name
                                 end
                             end
+
                         end
                     end
-                    
+
                     -- Sometimes the zone/map names have (Surface) in them, I don't want this info.
                     if zoneName then
                         zoneName = zoneName:gsub("%s*%(Surface%)", "")
@@ -254,7 +308,6 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         end
                     end
 
-                    -- === DIFFICULTY ABBREVIATION (N, H, M) ===
                     local shortDiff = ""
                     if isInInstance and difficultyName then
                         if string.find(difficultyName, "Mythic") then
@@ -281,14 +334,14 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         MobCompendiumDB[npcID] = {
                             name = destName,
                             kills = 1,
-                            zone = zoneName, -- "Isle of Dorn"
-                            parentMap = parentMapName, -- "Khaz Algar"
+                            zone = zoneName,
+                            parentMap = parentMapName,
                             rank = capturedRank,
                             type = capturedType,
                             lastX = posX, lastY = posY,
                             lastTime = currentTime,
                             instType = instanceType,
-                            diffName = shortDiff, -- "N", "H", "M"
+                            diffName = shortDiff,
                             mapID = mapID,
                             drops = {},
                             spells = {}
