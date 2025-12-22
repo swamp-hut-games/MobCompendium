@@ -104,17 +104,15 @@ function NS.UI.List.Update()
             local mobName = strlower(mobData.name or "")
 
             if not isSearching or string.find(mobName, searchText, 1, true) then
-
-                -- NEW: Iterate over 'encounters' instead of root properties
+                
                 if mobData.encounters then
                     for mapID, encounter in pairs(mobData.encounters) do
 
                         local pKey = encounter.parentMap or "Uncategorized"
                         local zKey = encounter.zoneName or "Unknown Zone"
-
-                        -- Append Difficulty if present
+                        
                         if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
-                            zKey = zKey .. " (" .. encounter.diffName .. ")"
+                            pKey = pKey .. " [" .. encounter.diffName .. "]"
                         end
 
                         if not hierarchy[pKey] then
@@ -126,12 +124,10 @@ function NS.UI.List.Update()
                         end
 
                         -- Add Mob to this Zone's list
-                        -- We use encounter.rank here because a mob might be Elite in one map but Normal in another
                         table.insert(hierarchy[pKey].zones[zKey].mobs, {
                             id = id,
                             name = mobData.name,
                             rank = encounter.rank or "normal",
-                            -- Optional: Pass mapID if you want Details pane to focus this specific map later
                             mapID = mapID
                         })
                     end
@@ -257,7 +253,7 @@ function NS.UI.List.Update()
                 btn.text:SetPoint("LEFT", 20, 0)
                 btn.text:SetFontObject("GameFontNormal")
                 btn.text:SetText(item.name)
-                btn.text:SetTextColor(1.0, 0.82, 0.0, 1) -- Yellow/Gold
+                btn.text:SetTextColor(1.0, 0.82, 0.0, 1)
 
                 btn:SetScript("OnClick", function()
                     if not isSearching then
@@ -297,13 +293,13 @@ function NS.UI.List.Update()
                     selectedNpcID = item.id
                     NS.UI.List.Update()
 
-                    -- NOTE: You will need to update Details.ShowMob to handle mapID if you want specific zone info
                     if NS.UI.Details and NS.UI.Details.ShowMob then
                         NS.UI.Details.ShowMob(item.id, item.mapID)
                     end
                     if NS.UI.RightColumn then
                         NS.UI.RightColumn.Update(item.id)
                     end
+                    
                 end)
             end
 

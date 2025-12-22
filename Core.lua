@@ -175,33 +175,34 @@ end
 
 -- Gets called whenever the player opens the loot window
 local function OnLootOpened()
-
     local numItems = GetNumLootItems()
     if numItems > 0 then
 
         local mapID = C_Map.GetBestMapForUnit("player")
+        local _, instanceType, difficultyID = GetInstanceInfo()
+        local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
+
+        -- Default to mapID, but append Difficulty ID if in instance to separate Normal/Heroic/Mythic
+        local encounterKey = mapID
+        if mapID and isInInstance and difficultyID then
+            encounterKey = mapID .. ":" .. difficultyID
+        end
 
         for i = 1, numItems do
-
             local sourceGUID = GetLootSourceInfo(i)
-            if sourceGUID and mapID then
+            if sourceGUID and encounterKey then
 
                 if not lootCache[sourceGUID] then
                     lootCache[sourceGUID] = {}
                 end
 
-                -- sourceGUID contains: [unitType]-0-[serverID]-[instanceID]-[zoneUID]-[ID]-[spawnUID]
                 local unitType, _, _, _, _, npcID, _ = strsplit("-", sourceGUID)
-
                 if unitType == "Creature" then
                     npcID = tonumber(npcID)
-
                     if GetLootSlotType(i) == Enum.LootSlotType.Item then
                         local link = GetLootSlotLink(i)
-
                         if link then
                             local itemID = GetItemInfoInstant(link)
-
                             if itemID then
                                 if not lootCache[sourceGUID][itemID] then
 
@@ -213,26 +214,24 @@ local function OnLootOpened()
                                         }
                                     end
 
-                                    if not MobCompendiumDB[npcID].encounters[mapID] then
-                                        MobCompendiumDB[npcID].encounters[mapID] = {
+                                    if not MobCompendiumDB[npcID].encounters[encounterKey] then
+                                        MobCompendiumDB[npcID].encounters[encounterKey] = {
                                             zoneName = "Unknown (Looted)",
                                             drops = {},
                                             kills = 0
                                         }
                                     end
 
-                                    MobCompendiumDB[npcID].encounters[mapID].drops[itemID] = true
+                                    MobCompendiumDB[npcID].encounters[encounterKey].drops[itemID] = true
                                     lootCache[sourceGUID][itemID] = true
                                 end
                             end
-
                         end
                     end
                 end
             end
         end
     end
-
 end
 
 local function OnCombatEnemySpellCast(npcID, spellID, sourceGUID)
@@ -291,7 +290,7 @@ local function OnCombatUnitDied(destGUID, destName)
                 end
             end
 
-            local instName, instanceType, _, difficultyName = GetInstanceInfo()
+            local instName, instanceType, difficultyID, difficultyName = GetInstanceInfo()
             local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
 
             if isInInstance and instName and instName ~= "" then
@@ -312,20 +311,21 @@ local function OnCombatUnitDied(destGUID, destName)
                 end
             end
 
-            -- Sometimes the zone/map names have (Surface) in them, I don't want this info.
+            -- Sanitize Names
             if zoneName then
                 zoneName = zoneName:gsub("%s*%(Surface%)", "")
                 if string.match(zoneName, "^%d") then
                     zoneName = "Unknown Zone"
                 end
             end
+
             if parentMapName then
                 parentMapName = parentMapName:gsub("%s*%(Surface%)", "")
                 if string.match(parentMapName, "^%d") then
                     parentMapName = nil
                 end
             end
-
+            
             if parentMapName == zoneName then
                 zoneName = "General"
             end
@@ -353,19 +353,22 @@ local function OnCombatUnitDied(destGUID, destName)
             end
             local currentTime = date("%Y-%m-%d %H:%M")
 
+            local encounterKey = mapID
+            if mapID and isInInstance and difficultyID then
+                encounterKey = mapID .. ":" .. difficultyID
+            end
+
             if not MobCompendiumDB[npcID] then
                 MobCompendiumDB[npcID] = {
                     name = destName,
                     spells = {},
                     encounters = {}
                 }
-
                 if tempSpellCache[destGUID] then
                     for sID, _ in pairs(tempSpellCache[destGUID]) do
                         MobCompendiumDB[npcID].spells[sID] = true
                     end
                 end
-
                 if MobCompendiumDB.settings.printNew then
                     print("|cff00ffffMobCompendium:|r Discovered " .. destName .. " (" .. (capturedType or "Unknown") .. ")!")
                 end
@@ -373,8 +376,8 @@ local function OnCombatUnitDied(destGUID, destName)
 
             local entry = MobCompendiumDB[npcID]
 
-            if not entry.encounters[mapID] then
-                entry.encounters[mapID] = {
+            if not entry.encounters[encounterKey] then
+                entry.encounters[encounterKey] = {
                     zoneName = zoneName,
                     parentMap = parentMapName,
                     instType = instanceType,
@@ -386,25 +389,30 @@ local function OnCombatUnitDied(destGUID, destName)
                 }
             end
 
-            local sighting = entry.encounters[mapID]
-            sighting.kills = sighting.kills + 1
-            sighting.lastX = posX
-            sighting.lastY = posY
-            sighting.lastTime = currentTime
-            sighting.zoneName = zoneName
-            sighting.parentMap = parentMapName
+            local encounter = entry.encounters[encounterKey]
+            encounter.kills = encounter.kills + 1
+            encounter.lastX = posX
+            encounter.lastY = posY
+            encounter.lastTime = currentTime
+            encounter.zoneName = zoneName
+            encounter.parentMap = parentMapName
+            encounter.diffName = shortDiff
 
-            if (sighting.rank or "unknown") == "unknown" and capturedRank ~= "unknown" then
-                sighting.rank = capturedRank
+            if (encounter.rank or "unknown") == "unknown" and capturedRank ~= "unknown" then
+                encounter.rank = capturedRank
             end
-            if not sighting.type and capturedType then
-                sighting.type = capturedType
+            if not encounter.type and capturedType then
+                encounter.type = capturedType
             end
 
             entry.name = destName
 
             if MobCompendiumDB.settings.printUpdate then
-                print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total Kills in " .. zoneName .. ": " .. sighting.kills .. ")")
+                local printZone = zoneName
+                if shortDiff ~= "" then
+                    printZone = printZone .. " (" .. shortDiff .. ")"
+                end
+                print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total Kills in " .. printZone .. ": " .. encounter.kills .. ")")
             end
 
             recentTags[destGUID] = nil
