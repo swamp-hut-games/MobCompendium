@@ -4,10 +4,6 @@ local recentTags = {}
 local lootCache = {}      -- Tracks scanned corpses (GUIDs)
 local tempSpellCache = {} -- Temporarily stores spells seen during combat
 
--- =========================================================================
--- LOGIC & HELPERS
--- =========================================================================
-
 local function GetUnitToken(targetGUID)
     if UnitGUID("target") == targetGUID then
         return "target"
@@ -32,7 +28,6 @@ local function GetUnitToken(targetGUID)
 end
 
 local function ResolveRank(unitToken)
-
     if UnitIsWildBattlePet(unitToken) then
         return "wildpet"
     end
@@ -62,7 +57,7 @@ local function ResolveRank(unitToken)
 end
 
 -- =========================================================================
--- SLASH COMMANDS
+-- Commands
 -- =========================================================================
 
 SLASH_MobCompendium1 = "/mobc"
@@ -79,7 +74,7 @@ SlashCmdList["MobCompendiumReset"] = function()
 end
 
 -- =========================================================================
--- EVENT HANDLERS
+-- Event Handlers
 -- =========================================================================
 
 frame:RegisterEvent("ADDON_LOADED")
@@ -103,7 +98,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
         return
     end
 
-    -- 3. LOOT TRACKING
+    -- Loot Tracking
     if event == "LOOT_OPENED" then
         local numItems = GetNumLootItems()
         if numItems > 0 then
@@ -149,7 +144,7 @@ frame:SetScript("OnEvent", function(self, event, arg1)
     if event == "COMBAT_LOG_EVENT_UNFILTERED" then
         local _, subEvent, _, sourceGUID, _, _, _, destGUID, destName, _, _, spellID = CombatLogGetCurrentEventInfo()
 
-        -- 4. SPELL TRACKING
+        -- Tracking Spells
         if subEvent == "SPELL_CAST_START" or subEvent == "SPELL_CAST_SUCCESS" then
             local unitType, _, _, _, _, npcID = strsplit("-", sourceGUID)
             if unitType == "Creature" then
@@ -217,13 +212,62 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         end
                     end
 
-                    local status, zoneName = pcall(GetRealZoneText)
-                    if not status or not zoneName then
-                        zoneName = "Unknown Zone"
+                    -- === LOCATION LOGIC (REVISED) ===
+                    local zoneName = "Unknown Zone"
+                    local parentMapName = nil
+
+                    local mapID = C_Map.GetBestMapForUnit("player")
+                    local instName, instanceType, _, difficultyName = GetInstanceInfo()
+                    local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
+
+                    -- A) INSTANCE: Use Instance Name
+                    if isInInstance and instName and instName ~= "" then
+                        zoneName = instName
+
+                        -- B) WORLD: Use Map Name & Fetch Parent (Continent)
+                    elseif mapID then
+                        local mapInfo = C_Map.GetMapInfo(mapID)
+                        if mapInfo and mapInfo.name then
+                            zoneName = mapInfo.name
+
+                            -- Fetch Parent (e.g., Khaz Algar)
+                            if mapInfo.parentMapID then
+                                local parentInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
+                                if parentInfo and parentInfo.name then
+                                    parentMapName = parentInfo.name
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- Sometimes the zone/map names have (Surface) in them, I don't want this info.
+                    if zoneName then
+                        zoneName = zoneName:gsub("%s*%(Surface%)", "")
+                        if string.match(zoneName, "^%d") then
+                            zoneName = "Unknown Zone"
+                        end
+                    end
+                    if parentMapName then
+                        parentMapName = parentMapName:gsub("%s*%(Surface%)", "")
+                        if string.match(parentMapName, "^%d") then
+                            parentMapName = nil
+                        end
                     end
 
+                    -- === DIFFICULTY ABBREVIATION (N, H, M) ===
+                    local shortDiff = ""
+                    if isInInstance and difficultyName then
+                        if string.find(difficultyName, "Mythic") then
+                            shortDiff = "M"
+                        elseif string.find(difficultyName, "Heroic") then
+                            shortDiff = "H"
+                        elseif string.find(difficultyName, "Normal") then
+                            shortDiff = "N"
+                        end
+                    end
+
+                    -- Store Position
                     local posX, posY = 0, 0
-                    local mapID = C_Map.GetBestMapForUnit("player")
                     if mapID then
                         local pos = C_Map.GetPlayerMapPosition(mapID, "player")
                         if pos then
@@ -231,20 +275,20 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         end
                     end
 
-                    local _, instanceType, _, difficultyName = GetInstanceInfo()
                     local currentTime = date("%Y-%m-%d %H:%M")
 
                     if not MobCompendiumDB[npcID] then
                         MobCompendiumDB[npcID] = {
                             name = destName,
                             kills = 1,
-                            zone = zoneName,
+                            zone = zoneName, -- "Isle of Dorn"
+                            parentMap = parentMapName, -- "Khaz Algar"
                             rank = capturedRank,
                             type = capturedType,
                             lastX = posX, lastY = posY,
                             lastTime = currentTime,
                             instType = instanceType,
-                            diffName = difficultyName,
+                            diffName = shortDiff, -- "N", "H", "M"
                             mapID = mapID,
                             drops = {},
                             spells = {}
@@ -263,11 +307,12 @@ frame:SetScript("OnEvent", function(self, event, arg1)
                         local entry = MobCompendiumDB[npcID]
                         entry.kills = entry.kills + 1
                         entry.zone = zoneName
+                        entry.parentMap = parentMapName
                         entry.lastX = posX
                         entry.lastY = posY
                         entry.lastTime = currentTime
                         entry.instType = instanceType
-                        entry.diffName = difficultyName
+                        entry.diffName = shortDiff
                         entry.mapID = mapID
 
                         -- DATA HEALING

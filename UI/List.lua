@@ -12,37 +12,16 @@ local searchTimer = nil
 local function GetZoneKey(data)
     local z = data.zone or "Unknown Zone"
     local t = data.instType or "none"
-    local d = data.diffName
-    local mapID = data.mapID
+    local d = data.diffName -- "N", "H", "M"
 
     local suffix = ""
 
-    if t == "party" then
-        suffix = " (Dungeon)"
-        if d and d ~= "" and d ~= "Normal" then
-            suffix = " (" .. d .. " Dungeon)"
-        end
-    elseif t == "raid" then
-        suffix = " (Raid)"
-        if d and d ~= "" then
-            suffix = " (" .. d .. " Raid)"
-        end
-    elseif t == "scenario" then
-        suffix = " (Scenario)"
-        if d and d ~= "" and d ~= "Normal" then
-            suffix = " (" .. d .. " Scenario)"
-        end
-    elseif t == "pvp" or t == "arena" then
-        suffix = " (PvP)"
-    elseif t == "none" and mapID then
-        local mapInfo = C_Map.GetMapInfo(mapID)
-        if mapInfo and mapInfo.parentMapID then
-            local parentInfo = C_Map.GetMapInfo(mapInfo.parentMapID)
-            if parentInfo and parentInfo.name then
-                suffix = " (" .. parentInfo.name .. ")"
-            end
-        end
+    -- Case 1: Instance -> Show Difficulty
+    if t ~= "none" and d and d ~= "" then
+        suffix = " (" .. d .. ")"
     end
+
+    -- Case 2: World -> We do NOT show the parent map anymore as requested.
 
     return z .. suffix, t
 end
@@ -83,7 +62,7 @@ function NS.UI.List.Init(mainFrame)
     searchBox:SetPoint("TOP", listBgFrame, "TOP", 0, -12)
     searchBox:SetAutoFocus(false)
     searchBox:SetFontObject("ChatFontNormal")
-    
+
     searchBox.placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     searchBox.placeholder:SetPoint("LEFT", 4, 0)
     searchBox.placeholder:SetText("Search Mobs...")
@@ -98,7 +77,7 @@ function NS.UI.List.Init(mainFrame)
         else
             self.placeholder:Show()
         end
-        
+
         if searchTimer then
             searchTimer:Cancel()
         end
@@ -222,6 +201,8 @@ function NS.UI.List.Update()
                 btn.icon:SetVertexColor(unpack(zConfig.color))
                 btn.text:SetPoint("LEFT", 25, 0);
                 btn.text:SetFontObject("GameFontNormal");
+
+                -- Render the name: "Isle of Dorn (5)"
                 btn.text:SetText(thisItem.name);
                 btn.text:SetTextColor(1, 0.82, 0, 1)
 
