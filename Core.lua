@@ -180,11 +180,14 @@ local function GetLocationData()
     end
 
     local shortDiff = ""
+    
     if isInInstance and difficultyName then
         if string.find(difficultyName, "Mythic") then
             shortDiff = "M"
         elseif string.find(difficultyName, "Heroic") then
             shortDiff = "H"
+        elseif string.find(difficultyName, "Timewalking") then
+            shortDiff = "TW"
         elseif string.find(difficultyName, "Normal") then
             shortDiff = "N"
         end
