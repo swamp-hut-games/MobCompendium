@@ -1,5 +1,7 @@
 ﻿local _, NS = ...
 
+NS.DB_VERSION = 1
+
 -- Rank Configuration
 NS.RANK_CONFIG = {
     boss = {

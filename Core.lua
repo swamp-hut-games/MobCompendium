@@ -238,16 +238,48 @@ local function TagMobs(subEvent, destGUID)
 end
 
 -- =========================================================================
+-- DATABASE VERSIONING
+-- =========================================================================
+
+local function CheckDatabaseVersion()
+
+    if MobCompendiumDB.dbVersion == nil then
+        MobCompendiumDB = {}
+        MobCompendiumDB.dbVersion = NS.DB_VERSION
+        return
+    end
+
+    if MobCompendiumDB.dbVersion < NS.DB_VERSION then
+        print("|cff00ffffMobCompendium:|r Database outdated (v" .. MobCompendiumDB.dbVersion .. "). Preparing structure for v" .. NS.DB_VERSION .. ".")
+
+        -- ==========================================
+        -- Future Migration Logic 
+        -- ==========================================
+        -- Example:
+        -- if MobCompendiumDB.dbVersion < 2 then
+        --     MigrateToV2()
+        -- end
+
+        -- Update the version after migrations are done
+        MobCompendiumDB.dbVersion = NS.DB_VERSION
+    end
+end
+
+-- =========================================================================
 -- Event Functions
 -- =========================================================================
 
 -- Gets called once the Addon loads
 local function OnAddonLoaded()
+
     if MobCompendiumDB == nil then
         MobCompendiumDB = {}
     end
+
+    CheckDatabaseVersion()
     NS.InitSettings()
     print("|cff00ff00MobCompendium:|r Loaded successfully.")
+
 end
 
 local function OnPlayerEnterWorld()
