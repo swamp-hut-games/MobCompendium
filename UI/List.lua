@@ -16,12 +16,81 @@ local parentToSubZoneKeys = {} -- Map of ParentKey -> List of SubZoneKeys (for S
 local isInitialized = false
 local selectedNpcID = nil
 local searchTimer = nil
-local searchMenu = nil -- Reference to the settings dropdown
+local searchMenu = nil
 
 -- Create a unique key for subzones to prevent collisions
 local function GetSubZoneKey(parent, zone)
     return parent .. "::" .. zone
 end
+
+-- =========================================================================
+-- SEARCH LOGIC HELPER
+-- =========================================================================
+local function MatchesFilter(mobData, searchText, filters)
+
+    -- If search is empty, show everything
+    if searchText == "" then
+        return true
+    end
+
+    -- If NO filters are selected, return false
+    if not filters.mobs and not filters.zones and not filters.loot and not filters.spells then
+        return false
+    end
+
+    if filters.mobs then
+        local name = strlower(mobData.name or "")
+        if string.find(name, searchText, 1, true) then
+            return true
+        end
+    end
+
+    if filters.zones and mobData.encounters then
+        for _, enc in pairs(mobData.encounters) do
+            local pMap = strlower(enc.parentMap or "")
+            local zName = strlower(enc.zoneName or "")
+            if string.find(pMap, searchText, 1, true) or string.find(zName, searchText, 1, true) then
+                return true
+            end
+        end
+    end
+
+    if filters.spells and mobData.spells then
+        for spellID, _ in pairs(mobData.spells) do
+            local info = C_Spell.GetSpellInfo(spellID)
+            if info and info.name then
+                if string.find(strlower(info.name), searchText, 1, true) then
+                    return true
+                end
+            end
+        end
+    end
+
+    if filters.loot and mobData.encounters then
+
+        for _, enc in pairs(mobData.encounters) do
+            if enc.drops then
+                for itemID, _ in pairs(enc.drops) do
+
+                    -- Might cause hiccups if searching for items not cached after relog
+                    local itemName = GetItemInfo(itemID)
+                    if itemName then
+                        if string.find(strlower(itemName), searchText, 1, true) then
+                            return true
+                        end
+                    end
+
+                end
+            end
+        end
+    end
+
+    return false
+end
+
+-- =========================================================================
+-- EXPANSION LOGIC
+-- =========================================================================
 
 local function ToggleParent(parentKey)
     local parentIsOpen = expandedParents[parentKey]
@@ -71,7 +140,6 @@ local function ToggleSubZone(uniqueKey)
 end
 
 function NS.UI.List.Init(mainFrame)
-    -- Initialize Search Settings in DB if missing
     if MobCompendiumDB and not MobCompendiumDB.searchFilter then
         MobCompendiumDB.searchFilter = {
             mobs = true,
@@ -125,8 +193,8 @@ function NS.UI.List.Init(mainFrame)
     end)
 
     local settingsBtn = CreateFrame("Button", nil, listBgFrame)
-    settingsBtn:SetSize(24, 24)
-    settingsBtn:SetPoint("LEFT", searchBox, "RIGHT", 4, 0)
+    settingsBtn:SetSize(20, 20)
+    settingsBtn:SetPoint("LEFT", searchBox, "RIGHT", 4, -1)
     settingsBtn.icon = settingsBtn:CreateTexture(nil, "ARTWORK")
     settingsBtn.icon:SetAllPoints()
     settingsBtn.icon:SetTexture("Interface\\WorldMap\\Gear_64")
@@ -155,7 +223,6 @@ function NS.UI.List.Init(mainFrame)
         cb.text:SetText(label)
         cb.text:SetFontObject("GameFontNormalSmall")
 
-        -- Load state from DB
         if MobCompendiumDB and MobCompendiumDB.searchFilter then
             cb:SetChecked(MobCompendiumDB.searchFilter[key])
         else
@@ -167,7 +234,6 @@ function NS.UI.List.Init(mainFrame)
             if MobCompendiumDB and MobCompendiumDB.searchFilter then
                 MobCompendiumDB.searchFilter[key] = isChecked
                 PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-                -- Trigger update immediately if text exists, otherwise just save state
                 if searchBox:GetText() ~= "" then
                     NS.UI.List.Update()
                 end
@@ -181,7 +247,7 @@ function NS.UI.List.Init(mainFrame)
     title:SetText("Search for")
 
     local cbMobs = CreateSearchOption("Mobs", "mobs", title)
-    cbMobs:SetPoint("TOPLEFT", 10, -25) -- Override anchor for first item
+    cbMobs:SetPoint("TOPLEFT", 10, -25)
 
     local cbZones = CreateSearchOption("Zones", "zones", cbMobs)
     local cbLoot = CreateSearchOption("Loot", "loot", cbZones)
@@ -241,11 +307,13 @@ function NS.UI.List.Update()
     local searchText = searchBox and strlower(searchBox:GetText() or "") or ""
     local isSearching = (searchText ~= "")
 
+    -- Load Filters
+    local filters = MobCompendiumDB.searchFilter or { mobs = true, zones = true, loot = true, spells = true }
+
     for id, mobData in pairs(MobCompendiumDB) do
         if type(id) == "number" then
-            local mobName = strlower(mobData.name or "")
 
-            if not isSearching or string.find(mobName, searchText, 1, true) then
+            if MatchesFilter(mobData, searchText, filters) then
 
                 if mobData.encounters then
                     for mapID, encounter in pairs(mobData.encounters) do
@@ -290,8 +358,6 @@ function NS.UI.List.Update()
     visibleParentKeys = sortedParents
 
     if not isInitialized then
-
-        -- When the player is logging it, check player zone to open the current one.
         local currentZoneName = nil
         local mapID = C_Map.GetBestMapForUnit("player")
         if mapID then
@@ -302,9 +368,7 @@ function NS.UI.List.Update()
         end
 
         for _, pKey in ipairs(sortedParents) do
-
             expandedParents[pKey] = true
-
             if hierarchy[pKey] and hierarchy[pKey].zones then
                 for zKey, _ in pairs(hierarchy[pKey].zones) do
                     if currentZoneName and string.find(zKey, currentZoneName, 1, true) then
@@ -374,7 +438,6 @@ function NS.UI.List.Update()
         table.insert(displayList, { type = "SPACER", height = 4 })
     end
 
-    -- Render (Button Pooling)
     local heightAccumulator = 0
     local itemSpacing = 1
 
@@ -490,5 +553,4 @@ function NS.UI.List.Update()
     end
 
     scrollChild:SetHeight(heightAccumulator)
-
 end
