@@ -16,6 +16,7 @@ local parentToSubZoneKeys = {} -- Map of ParentKey -> List of SubZoneKeys (for S
 local isInitialized = false
 local selectedNpcID = nil
 local searchTimer = nil
+local searchMenu = nil -- Reference to the settings dropdown
 
 -- Create a unique key for subzones to prevent collisions
 local function GetSubZoneKey(parent, zone)
@@ -70,6 +71,16 @@ local function ToggleSubZone(uniqueKey)
 end
 
 function NS.UI.List.Init(mainFrame)
+    -- Initialize Search Settings in DB if missing
+    if MobCompendiumDB and not MobCompendiumDB.searchFilter then
+        MobCompendiumDB.searchFilter = {
+            mobs = true,
+            zones = true,
+            loot = true,
+            spells = true
+        }
+    end
+
     local listBgFrame = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     listBgFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 4, -22)
     listBgFrame:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMLEFT", 4, 4)
@@ -94,6 +105,9 @@ function NS.UI.List.Init(mainFrame)
 
     searchBox:SetScript("OnEscapePressed", function(self)
         self:ClearFocus()
+        if searchMenu then
+            searchMenu:Hide()
+        end
     end)
     searchBox:SetScript("OnTextChanged", function(self)
         if self:GetText() ~= "" then
@@ -118,6 +132,63 @@ function NS.UI.List.Init(mainFrame)
     settingsBtn.icon:SetTexture("Interface\\WorldMap\\Gear_64")
     settingsBtn.icon:SetTexCoord(0, 0.5, 0, 0.5)
 
+    -- =========================================================================
+    -- SEARCH MENU
+    -- =========================================================================
+    searchMenu = CreateFrame("Frame", nil, listBgFrame, "BackdropTemplate")
+    searchMenu:SetSize(120, 130)
+    searchMenu:SetPoint("TOPRIGHT", settingsBtn, "BOTTOMRIGHT", 100, -5)
+    searchMenu:SetFrameStrata("DIALOG")
+    searchMenu:Hide()
+
+    searchMenu:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true, tileSize = 32, edgeSize = 16,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 }
+    })
+
+    local function CreateSearchOption(label, key, relativeTo)
+        local cb = CreateFrame("CheckButton", nil, searchMenu, "UICheckButtonTemplate")
+        cb:SetSize(24, 24)
+        cb:SetPoint("TOPLEFT", relativeTo, "BOTTOMLEFT", 0, -2)
+        cb.text:SetText(label)
+        cb.text:SetFontObject("GameFontNormalSmall")
+
+        -- Load state from DB
+        if MobCompendiumDB and MobCompendiumDB.searchFilter then
+            cb:SetChecked(MobCompendiumDB.searchFilter[key])
+        else
+            cb:SetChecked(true)
+        end
+
+        cb:SetScript("OnClick", function(self)
+            local isChecked = self:GetChecked()
+            if MobCompendiumDB and MobCompendiumDB.searchFilter then
+                MobCompendiumDB.searchFilter[key] = isChecked
+                PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+                -- Trigger update immediately if text exists, otherwise just save state
+                if searchBox:GetText() ~= "" then
+                    NS.UI.List.Update()
+                end
+            end
+        end)
+        return cb
+    end
+
+    local title = searchMenu:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    title:SetPoint("TOP", 0, -10)
+    title:SetText("Search for")
+
+    local cbMobs = CreateSearchOption("Mobs", "mobs", title)
+    cbMobs:SetPoint("TOPLEFT", 10, -25) -- Override anchor for first item
+
+    local cbZones = CreateSearchOption("Zones", "zones", cbMobs)
+    local cbLoot = CreateSearchOption("Loot", "loot", cbZones)
+    local cbSpells = CreateSearchOption("Spells", "spells", cbLoot)
+
+    -- =========================================================================
+
     settingsBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetText("Search Settings")
@@ -132,7 +203,11 @@ function NS.UI.List.Init(mainFrame)
 
     settingsBtn:SetScript("OnClick", function()
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-        print("Settings Clicked!")
+        if searchMenu:IsShown() then
+            searchMenu:Hide()
+        else
+            searchMenu:Show()
+        end
     end)
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, listBgFrame, "UIPanelScrollFrameTemplate")
