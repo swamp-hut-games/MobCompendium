@@ -139,7 +139,7 @@ local function GetLocationData()
         end
     end
 
-    local instName, instanceType, difficultyID, difficultyName = GetInstanceInfo()
+    local instName, instanceType, difficultyID, difficultyName, _, _, _, instanceID = GetInstanceInfo()
     local isInInstance = (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "pvp")
 
     if isInInstance and instName and instName ~= "" then
@@ -160,21 +160,18 @@ local function GetLocationData()
         end
     end
 
-    -- Sanitize Names
     if zoneName then
         zoneName = zoneName:gsub("%s*%(Surface%)", "")
         if string.match(zoneName, "^%d") then
             zoneName = "Unknown Zone"
         end
     end
-
     if parentMapName then
         parentMapName = parentMapName:gsub("%s*%(Surface%)", "")
         if string.match(parentMapName, "^%d") then
             parentMapName = nil
         end
     end
-
     if parentMapName == zoneName then
         zoneName = "General"
     end
@@ -193,9 +190,11 @@ local function GetLocationData()
         end
     end
 
-    local encounterKey = mapID
-    if mapID and isInInstance and difficultyID then
-        encounterKey = mapID .. ":" .. difficultyID
+    local baseID = mapID or instanceID or "Unknown"
+
+    local encounterKey = baseID
+    if isInInstance and difficultyID then
+        encounterKey = baseID .. ":" .. difficultyID
     end
 
     return {
@@ -404,7 +403,6 @@ local function OnCombatUnitDied(destGUID, destName)
             end
 
             if not capturedType or capturedRank == "unknown" then
-                local token = GetUnitToken(destGUID)
                 if token then
                     if not capturedType then
                         capturedType = UnitCreatureType(token)
