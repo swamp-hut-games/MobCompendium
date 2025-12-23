@@ -28,14 +28,14 @@ function NS.CreateUI()
 
     mainFrame = CreateFrame("Frame", "MobCompendiumMainWindow", UIParent, "BasicFrameTemplateWithInset")
     mainFrame:SetSize(1150, 600)
-    
+
     if MobCompendiumDB and MobCompendiumDB.windowPos then
         local pos = MobCompendiumDB.windowPos
         mainFrame:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
     else
         mainFrame:SetPoint("CENTER")
     end
-    
+
     mainFrame:SetMovable(true)
     mainFrame:EnableMouse(true)
     mainFrame:RegisterForDrag("LeftButton")
@@ -53,18 +53,19 @@ function NS.CreateUI()
     end)
 
     mainFrame:SetScript("OnShow", function()
-        PlaySound(862)
+        PlaySound(603)
     end)
     mainFrame:SetScript("OnHide", function()
-        PlaySound(863)
+        PlaySoundFile(4256145)
     end)
+
     tinsert(UISpecialFrames, "MobCompendiumMainWindow")
 
     mainFrame.title = mainFrame:CreateFontString(nil, "OVERLAY")
     mainFrame.title:SetFontObject("GameFontHighlight")
     mainFrame.title:SetPoint("LEFT", mainFrame.TitleBg, "LEFT", 5, 0)
     mainFrame.title:SetText("Mob Compendium")
-    
+
     if NS.UI.List then
         NS.UI.List.Init(mainFrame)
     end

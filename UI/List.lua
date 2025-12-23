@@ -10,7 +10,7 @@ local buttons = {}
 local expandedParents = {}
 local expandedSubZones = {}
 
--- New State Helpers
+-- State Helpers
 local visibleParentKeys = {}   -- List of all current parent keys (for Alt+Click)
 local parentToSubZoneKeys = {} -- Map of ParentKey -> List of SubZoneKeys (for Shift+Click)
 local isInitialized = false
@@ -191,7 +191,7 @@ function NS.UI.List.Update()
 
     if not isInitialized then
 
-        -- When the player is logging it, I checked to open the current zone the player is in.
+        -- When the player is logging it, check player zone to open the current one.
         local currentZoneName = nil
         local mapID = C_Map.GetBestMapForUnit("player")
         if mapID then
@@ -274,7 +274,7 @@ function NS.UI.List.Update()
         table.insert(displayList, { type = "SPACER", height = 4 })
     end
 
-    -- 3. Render (Button Pooling)
+    -- Render (Button Pooling)
     local heightAccumulator = 0
     local itemSpacing = 1
 
@@ -388,5 +388,7 @@ function NS.UI.List.Update()
     for i = #displayList + 1, #buttons do
         buttons[i]:Hide()
     end
+
     scrollChild:SetHeight(heightAccumulator)
+    
 end

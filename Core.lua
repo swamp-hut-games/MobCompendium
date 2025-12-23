@@ -375,6 +375,7 @@ local function OnCombatUnitDied(destGUID, destName)
             end
 
             local currentTime = date("%Y-%m-%d %H:%M")
+            local newMob = false;
 
             if not MobCompendiumDB[npcID] then
                 MobCompendiumDB[npcID] = {
@@ -389,6 +390,7 @@ local function OnCombatUnitDied(destGUID, destName)
                 end
                 if MobCompendiumDB.settings.printNew then
                     print("|cff00ffffMobCompendium:|r Discovered " .. destName .. " (" .. (capturedType or "Unknown") .. ")!")
+                    newMob = true;
                 end
             end
 
@@ -426,19 +428,26 @@ local function OnCombatUnitDied(destGUID, destName)
 
             entry.name = destName
 
-            if MobCompendiumDB.settings.printUpdate then
-                local printZone = location.zoneName
-                if location.shortDiff ~= "" then
-                    printZone = printZone .. " (" .. location.shortDiff .. ")"
+            if (newMob == false) then
+                if MobCompendiumDB.settings.printUpdate then
+
+                    local printZone = location.zoneName
+
+                    if location.shortDiff ~= "" then
+                        printZone = printZone .. " (" .. location.shortDiff .. ")"
+                    end
+
+                    print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total Kills in " .. printZone .. ": " .. encounter.kills .. ")")
+
                 end
-                print("|cffaaaaaaMobCompendium:|r Recorded " .. destName .. " (Total Kills in " .. printZone .. ": " .. encounter.kills .. ")")
             end
 
-            recentTags[destGUID] = nil
-            tempSpellCache[destGUID] = nil
-            if NS.UpdateUI then
-                NS.UpdateUI()
-            end
+        end
+
+        recentTags[destGUID] = nil
+        tempSpellCache[destGUID] = nil
+        if NS.UpdateUI then
+            NS.UpdateUI()
         end
     end
 end

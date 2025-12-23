@@ -33,7 +33,6 @@ function NS.UI.LootList.Update(data)
         return
     end
 
-    -- 1. Collect Drops from ALL encounters
     local uniqueDrops = {}
     local hasLoot = false
 
@@ -51,16 +50,19 @@ function NS.UI.LootList.Update(data)
     end
 
     local list = {}
+
     for id, _ in pairs(uniqueDrops) do
         table.insert(list, id)
     end
+    
     table.sort(list)
 
     local height = 0
     for i, itemID in ipairs(list) do
+
         local btn = buttons[i]
+
         if not btn then
-            -- (Keep your existing button creation code here exactly as it was)
             btn = CreateFrame("Button", nil, scrollChild)
             btn:SetSize(260, 44)
             btn.icon = btn:CreateTexture(nil, "ARTWORK");
@@ -82,12 +84,12 @@ function NS.UI.LootList.Update(data)
         btn:Show()
         btn:SetPoint("TOPLEFT", 0, -height)
 
-        -- Reset
         btn.icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
         btn.name:SetText("Loading...")
         btn.name:SetTextColor(1, 1, 1)
 
         local item = Item:CreateFromItemID(itemID)
+
         item:ContinueOnItemLoad(function()
             local itemName, _, quality, _, _, _, _, _, _, icon = GetItemInfo(itemID)
             btn.icon:SetTexture(icon)
@@ -105,9 +107,11 @@ function NS.UI.LootList.Update(data)
             GameTooltip:SetItemByID(itemID);
             GameTooltip:Show()
         end)
+
         btn:SetScript("OnLeave", function()
             GameTooltip:Hide()
         end)
+
         btn:SetScript("OnClick", function()
             if IsModifiedClick("CHATLINK") then
                 local _, l = GetItemInfo(itemID);
