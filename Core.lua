@@ -215,18 +215,27 @@ local function TagMobs(subEvent, destGUID)
             or string.find(subEvent, "SPELL_AURA") or string.find(subEvent, "_INTERRUPT")
             or string.find(subEvent, "_DISPEL") or string.find(subEvent, "_STOLEN") then
 
+        if destFlags then
+            local isHostile = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE
+            if not isHostile then
+                return
+            end
+        end
+
         local unitType = strsplit("-", destGUID)
 
-        if unitType == "Creature" then
+        if unitType == "Creature" or unitType == "Vehicle" then
 
             local token = GetUnitToken(destGUID)
             local currentData = recentTags[destGUID]
             if token then
-                recentTags[destGUID] = {
-                    time = GetTime(),
-                    rank = ResolveRank(token),
-                    type = UnitCreatureType(token)
-                }
+                if UnitCanAttack("player", token) then
+                    recentTags[destGUID] = {
+                        time = GetTime(),
+                        rank = ResolveRank(token),
+                        type = UnitCreatureType(token)
+                    }
+                end
             elseif currentData then
                 currentData.time = GetTime()
             else
@@ -303,7 +312,7 @@ local function OnLootOpened()
                 end
 
                 local unitType, _, _, _, _, npcID, _ = strsplit("-", sourceGUID)
-                if unitType == "Creature" then
+                if unitType == "Creature" or unitType == "Vehicle" then
                     npcID = tonumber(npcID)
                     if GetLootSlotType(i) == Enum.LootSlotType.Item then
                         local link = GetLootSlotLink(i)
@@ -375,15 +384,25 @@ local function OnCombatUnitDied(destGUID, destName)
 
     local unitType, _, _, _, _, npcID = strsplit("-", destGUID)
 
-    if unitType == "Creature" then
+    if unitType == "Creature" or unitType == "Vehicle" then
         local tagData = recentTags[destGUID]
-        local isTagged = tagData and (GetTime() - tagData.time < 60)
+
+        local inInstance, _ = IsInInstance()
+        local timeout = inInstance and 1800 or 180
+
+        local isTagged = tagData and (GetTime() - tagData.time < timeout)
 
         if isTagged then
             npcID = tonumber(npcID)
 
             local capturedRank = tagData.rank or "unknown"
             local capturedType = tagData.type
+            local token = GetUnitToken(destGUID)
+
+            if token and not UnitCanAttack("player", token) then
+                return
+            end
+
             if not capturedType or capturedRank == "unknown" then
                 local token = GetUnitToken(destGUID)
                 if token then
@@ -492,7 +511,7 @@ local function OnCombatLogEvent()
 
     if subEvent == "SPELL_CAST_START" or subEvent == "SPELL_CAST_SUCCESS" then
         local unitType, _, _, _, _, npcID = strsplit("-", sourceGUID)
-        if unitType == "Creature" then
+        if unitType == "Creature" or unitType == "Vehicle" then
             OnCombatEnemySpellCast(npcID, spellID, sourceGUID)
         end
     end
