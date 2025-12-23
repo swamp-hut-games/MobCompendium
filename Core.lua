@@ -180,16 +180,48 @@ local function GetLocationData()
     end
 
     local shortDiff = ""
-    
-    if isInInstance and difficultyName then
-        if string.find(difficultyName, "Mythic") then
-            shortDiff = "M"
-        elseif string.find(difficultyName, "Heroic") then
-            shortDiff = "H"
-        elseif string.find(difficultyName, "Timewalking") then
-            shortDiff = "TW"
-        elseif string.find(difficultyName, "Normal") then
-            shortDiff = "N"
+
+    if isInInstance and difficultyID then
+
+        -- PARTY
+        if difficultyID == 1 then
+            shortDiff = "N"       -- Normal (5 player)
+        elseif difficultyID == 2 then
+            shortDiff = "H"   -- Heroic (5 player)
+        elseif difficultyID == 23 then
+            shortDiff = "M"  -- Mythic (5 player)
+        elseif difficultyID == 8 then
+            shortDiff = "M"   -- Mythic Keystone
+        elseif difficultyID == 24 then
+            shortDiff = "TW" -- Timewalking (5 player)
+
+            -- RAID
+        elseif difficultyID == 14 then
+            shortDiff = "N" -- Normal (Flex)
+        elseif difficultyID == 3 or difficultyID == 4 then
+            shortDiff = "N" -- Normal (10/25 Legacy)
+
+        elseif difficultyID == 15 then
+            shortDiff = "H" -- Heroic (Flex)
+        elseif difficultyID == 5 or difficultyID == 6 then
+            shortDiff = "H" -- Heroic (10/25 Legacy)
+
+        elseif difficultyID == 16 then
+            shortDiff = "M" -- Mythic (20 player)
+
+        elseif difficultyID == 17 then
+            shortDiff = "LFR"  -- LFR (Flex)
+        elseif difficultyID == 7 then
+            shortDiff = "LFR"   -- LFR (Legacy)
+        elseif difficultyID == 151 then
+            shortDiff = "LFR" -- LFR (Timewalking/Event) [Blackrock Depths Fix]
+
+        elseif difficultyID == 33 then
+            shortDiff = "TW"   -- Timewalking Raid
+
+        elseif instanceType == "scenario" then
+            -- Scenarios
+            shortDiff = ""
         end
     end
 
