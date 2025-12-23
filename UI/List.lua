@@ -83,14 +83,14 @@ function NS.UI.List.Init(mainFrame)
     listBgFrame:SetBackdropColor(0.25, 0.25, 0.25, 1)
 
     searchBox = CreateFrame("EditBox", nil, listBgFrame, "InputBoxTemplate")
-    searchBox:SetSize(280, 30)
-    searchBox:SetPoint("TOP", listBgFrame, "TOP", 0, -12)
+    searchBox:SetSize(255, 30)
+    searchBox:SetPoint("TOPLEFT", listBgFrame, "TOPLEFT", 10, -12)
     searchBox:SetAutoFocus(false)
     searchBox:SetFontObject("ChatFontNormal")
 
     searchBox.placeholder = searchBox:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     searchBox.placeholder:SetPoint("LEFT", 4, 0)
-    searchBox.placeholder:SetText("Search Mobs...")
+    searchBox.placeholder:SetText("Search...")
 
     searchBox:SetScript("OnEscapePressed", function(self)
         self:ClearFocus()
@@ -108,6 +108,31 @@ function NS.UI.List.Init(mainFrame)
             NS.UI.List.Update()
             searchTimer = nil
         end)
+    end)
+
+    local settingsBtn = CreateFrame("Button", nil, listBgFrame)
+    settingsBtn:SetSize(24, 24)
+    settingsBtn:SetPoint("LEFT", searchBox, "RIGHT", 4, 0)
+    settingsBtn.icon = settingsBtn:CreateTexture(nil, "ARTWORK")
+    settingsBtn.icon:SetAllPoints()
+    settingsBtn.icon:SetTexture("Interface\\WorldMap\\Gear_64")
+    settingsBtn.icon:SetTexCoord(0, 0.5, 0, 0.5)
+
+    settingsBtn:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Search Settings")
+        GameTooltip:Show()
+        self.icon:SetVertexColor(1, 0.82, 0)
+    end)
+
+    settingsBtn:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+        self.icon:SetVertexColor(1, 1, 1)
+    end)
+
+    settingsBtn:SetScript("OnClick", function()
+        PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+        print("Settings Clicked!")
     end)
 
     local scrollFrame = CreateFrame("ScrollFrame", nil, listBgFrame, "UIPanelScrollFrameTemplate")
@@ -390,5 +415,5 @@ function NS.UI.List.Update()
     end
 
     scrollChild:SetHeight(heightAccumulator)
-    
+
 end
