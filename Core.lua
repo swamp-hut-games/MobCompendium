@@ -209,15 +209,15 @@ local function GetLocationData()
 end
 
 -- Manages tagging of mobs
-local function TagMobs(subEvent, destGUID)
+local function TagMobs(subEvent, destGUID, destFlags)
 
     if string.find(subEvent, "_DAMAGE") or string.find(subEvent, "_MISSED")
             or string.find(subEvent, "SPELL_AURA") or string.find(subEvent, "_INTERRUPT")
             or string.find(subEvent, "_DISPEL") or string.find(subEvent, "_STOLEN") then
 
         if destFlags then
-            local isHostile = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) == COMBATLOG_OBJECT_REACTION_HOSTILE
-            if not isHostile then
+            local isFriendly = bit.band(destFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) == COMBATLOG_OBJECT_REACTION_FRIENDLY
+            if isFriendly then
                 return
             end
         end
@@ -506,7 +506,7 @@ end
 -- Gets called everytime a combat log event happens
 local function OnCombatLogEvent()
 
-    local _, subEvent, _, sourceGUID, _, sourceFlags, _, destGUID, destName, _, _, spellID = CombatLogGetCurrentEventInfo()
+    local _, subEvent, _, sourceGUID, _, sourceFlags, _, destGUID, destName, destFlags, _, spellID = CombatLogGetCurrentEventInfo()
     local isGroup = false
 
     if subEvent == "SPELL_CAST_START" or subEvent == "SPELL_CAST_SUCCESS" then
@@ -528,7 +528,7 @@ local function OnCombatLogEvent()
     end
 
     if isGroup then
-        TagMobs(subEvent, destGUID)
+        TagMobs(subEvent, destGUID, destFlags)
     end
 
     if subEvent == "UNIT_DIED" then
