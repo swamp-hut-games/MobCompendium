@@ -171,18 +171,47 @@ function NS.UI.List.Init(mainFrame)
     searchBox.placeholder:SetPoint("LEFT", 4, 0)
     searchBox.placeholder:SetText("Search...")
 
+    local clearBtn = CreateFrame("Button", nil, searchBox)
+    clearBtn:SetSize(17, 17)
+    clearBtn:SetPoint("RIGHT", searchBox, "RIGHT", -5, 0)
+    clearBtn:Hide()
+
+    clearBtn.texture = clearBtn:CreateTexture(nil, "ARTWORK")
+    clearBtn.texture:SetTexture("Interface\\FriendsFrame\\ClearBroadcastIcon")
+    clearBtn.texture:SetAlpha(0.5)
+    clearBtn.texture:SetAllPoints()
+
+    clearBtn:SetScript("OnEnter", function(self)
+        self.texture:SetAlpha(1.0)
+    end)
+    clearBtn:SetScript("OnLeave", function(self)
+        self.texture:SetAlpha(0.5)
+    end)
+
+    clearBtn:SetScript("OnClick", function()
+        PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
+        searchBox:SetText("")
+        searchBox:ClearFocus()
+    end)
+
     searchBox:SetScript("OnEscapePressed", function(self)
         self:ClearFocus()
         if searchMenu then
             searchMenu:Hide()
         end
     end)
+
     searchBox:SetScript("OnTextChanged", function(self)
-        if self:GetText() ~= "" then
+        local text = self:GetText()
+
+        if text ~= "" then
             self.placeholder:Hide()
+            clearBtn:Show()
         else
             self.placeholder:Show()
+            clearBtn:Hide()
         end
+
         if searchTimer then
             searchTimer:Cancel()
         end
