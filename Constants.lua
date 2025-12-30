@@ -63,12 +63,14 @@ NS.RANK_CONFIG = {
 -- Zone Icon Configuration
 NS.ZONE_ICONS = {
     raid = {
-        icon = "Interface\\Icons\\LevelUpIcon-LFR",
-        color = { 1, 1, 1 }
+        icon = "Interface\\Minimap\\Raid_Icon",
+        color = { 1, 1, 1 },
+        size = 40
     },
     party = {
-        icon = "Interface\\Icons\\LevelUpIcon-LFD",
-        color = { 1, 1, 1 }
+        icon = "Interface\\Minimap\\Dungeon_Icon",
+        color = { 1, 1, 1 },
+        size = 40
     },
     scenario = {
         icon = "Interface\\Icons\\Icon_Scenarios",

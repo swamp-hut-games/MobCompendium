@@ -467,10 +467,13 @@ function NS.UI.List.Update()
 
             if item.type == "PARENT" then
                 local zConfig = NS.ZONE_ICONS[item.instType or "none"] or NS.ZONE_ICONS["none"]
+                local iconSize = zConfig.size or 14
 
                 btn:SetHeight(24)
+                btn.icon:SetSize(iconSize, iconSize)
                 btn.icon:Show()
-                btn.icon:SetPoint("LEFT", 5, 0)
+                btn.icon:ClearAllPoints()
+                btn.icon:SetPoint("CENTER", btn, "LEFT", 12, 0)
                 btn.icon:SetTexture(zConfig.icon)
                 btn.icon:SetVertexColor(unpack(zConfig.color))
 
@@ -507,8 +510,9 @@ function NS.UI.List.Update()
             elseif item.type == "MOB" then
                 local rConfig = NS.RANK_CONFIG[item.rank or "normal"]
                 btn:SetHeight(20)
-
+                btn.icon:SetSize(14, 14)
                 btn.icon:Show()
+                btn.icon:ClearAllPoints()
                 btn.icon:SetPoint("LEFT", 30, 0)
                 if rConfig and rConfig.icon then
                     btn.icon:SetTexture(rConfig.icon)
