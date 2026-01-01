@@ -2,7 +2,7 @@
 ## Title: MobCompendium
 ## Notes: A World of Warcraft Addon that acts as a living compendium for mobs you slay.
 ## Author: Michael Zauchinger
-## Version: 2.1
+## Version: 2.2
 ## SavedVariables: MobCompendiumDB
 ## IconTexture: Interface\AddOns\MobCompendium\icon.tga
 
