@@ -12,6 +12,7 @@ UI\LootList.lua
 UI\SpellList.lua
 UI\RightColumn.lua
 UI\Details.lua
+UI\FilterBar.lua
 UI\List.lua
 UI\Main.lua
 UI\MinimapButton.lua

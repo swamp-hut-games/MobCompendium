@@ -8,7 +8,7 @@ function NS.UI.RightColumn.Init(mainFrame)
 
     rightPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     rightPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -4, -22)
-    rightPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 4)
+    rightPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 45)
     rightPanel:SetWidth(300)
 
     rightPanel:SetBackdrop({

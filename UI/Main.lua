@@ -27,7 +27,7 @@ function NS.CreateUI()
     end
 
     mainFrame = CreateFrame("Frame", "MobCompendiumMainWindow", UIParent, "BasicFrameTemplateWithInset")
-    mainFrame:SetSize(1150, 600)
+    mainFrame:SetSize(1150, 650)
 
     if MobCompendiumDB and MobCompendiumDB.windowPos then
         local pos = MobCompendiumDB.windowPos
@@ -65,6 +65,10 @@ function NS.CreateUI()
     mainFrame.title:SetFontObject("GameFontHighlight")
     mainFrame.title:SetPoint("LEFT", mainFrame.TitleBg, "LEFT", 5, 0)
     mainFrame.title:SetText("Mob Compendium")
+
+    if NS.UI.FilterBar then
+        NS.UI.FilterBar.Init(mainFrame)
+    end
 
     if NS.UI.List then
         NS.UI.List.Init(mainFrame)

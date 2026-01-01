@@ -74,7 +74,7 @@ local function MatchesFilter(mobData, searchText, filters)
                             return true
                         end
                     end
-                    
+
                 end
             end
         end
@@ -133,7 +133,7 @@ function NS.UI.List.Init(mainFrame)
 
     local listBgFrame = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     listBgFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 4, -22)
-    listBgFrame:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMLEFT", 4, 4)
+    listBgFrame:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMLEFT", 4, 45)
     listBgFrame:SetWidth(300)
     listBgFrame:SetBackdrop({
         bgFile = "Interface\\AchievementFrame\\UI-Achievement-StatsBackground",
@@ -314,6 +314,11 @@ function NS.UI.List.Update()
 
     local filters = MobCompendiumDB.searchFilter or { mobs = true, zones = true, loot = true, spells = true }
 
+    local rankFilters = nil
+    if NS.UI.FilterBar and NS.UI.FilterBar.GetState then
+        rankFilters = NS.UI.FilterBar.GetState()
+    end
+
     for id, mobData in pairs(MobCompendiumDB) do
         if type(id) == "number" then
 
@@ -322,33 +327,46 @@ function NS.UI.List.Update()
                 if mobData.encounters then
                     for mapID, encounter in pairs(mobData.encounters) do
 
-                        local pKey = encounter.parentMap or "Uncategorized"
+                        local eRank = encounter.rank or "unknown"
+                        -- Safety check if rank key doesn't exist in our known list
+                        if not NS.RANK_CONFIG[eRank] then
+                            eRank = "unknown"
+                        end
 
-                        if pKey ~= "Uncategorized" then
+                        local isRankAllowed = true
+                        if rankFilters and not rankFilters[eRank] then
+                            isRankAllowed = false
+                        end
 
-                            local zKey = encounter.zoneName or "Unknown Zone"
+                        if isRankAllowed then
+                            local pKey = encounter.parentMap or "Uncategorized"
 
-                            if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
-                                pKey = pKey .. " [" .. encounter.diffName .. "]"
-                            end
+                            if pKey ~= "Uncategorized" then
 
-                            if not hierarchy[pKey] then
-                                hierarchy[pKey] = { zones = {}, type = (encounter.instType or "none") }
-                            end
+                                local zKey = encounter.zoneName or "Unknown Zone"
 
-                            if not hierarchy[pKey].zones[zKey] then
-                                hierarchy[pKey].zones[zKey] = { mobs = {}, seen = {} }
-                            end
+                                if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
+                                    pKey = pKey .. " [" .. encounter.diffName .. "]"
+                                end
 
-                            if not hierarchy[pKey].zones[zKey].seen[id] then
-                                table.insert(hierarchy[pKey].zones[zKey].mobs, {
-                                    id = id,
-                                    name = mobData.name,
-                                    rank = encounter.rank or "normal",
-                                    groupParent = pKey,
-                                    groupZone = zKey
-                                })
-                                hierarchy[pKey].zones[zKey].seen[id] = true
+                                if not hierarchy[pKey] then
+                                    hierarchy[pKey] = { zones = {}, type = (encounter.instType or "none") }
+                                end
+
+                                if not hierarchy[pKey].zones[zKey] then
+                                    hierarchy[pKey].zones[zKey] = { mobs = {}, seen = {} }
+                                end
+
+                                if not hierarchy[pKey].zones[zKey].seen[id] then
+                                    table.insert(hierarchy[pKey].zones[zKey].mobs, {
+                                        id = id,
+                                        name = mobData.name,
+                                        rank = encounter.rank or "normal",
+                                        groupParent = pKey,
+                                        groupZone = zKey
+                                    })
+                                    hierarchy[pKey].zones[zKey].seen[id] = true
+                                end
                             end
                         end
                     end

@@ -8,7 +8,7 @@ function NS.UI.Details.Init(mainFrame)
 
     parentFrame = CreateFrame("Frame", nil, mainFrame)
     parentFrame:SetPoint("TOPLEFT", mainFrame, "TOPLEFT", 304, -22)
-    parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -305, 5)
+    parentFrame:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -305, 45)
 
     local headerFrame = CreateFrame("Frame", nil, parentFrame, "BackdropTemplate")
     headerFrame:SetHeight(120)
