@@ -131,7 +131,17 @@ function NS.UI.Details.Init(mainFrame)
     end)
 end
 
-function NS.UI.Details.ShowMob(npcID, mapID)
+local function GetEncounterKeys(encounter)
+    local pKey = encounter.parentMap or "Uncategorized"
+    local zKey = encounter.zoneName or "Unknown Zone"
+
+    if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
+        pKey = pKey .. " [" .. encounter.diffName .. "]"
+    end
+    return pKey, zKey
+end
+
+function NS.UI.Details.ShowMob(npcID, filterParent, filterZone)
     local data = MobCompendiumDB[npcID]
     if not data then
         return
@@ -140,7 +150,7 @@ function NS.UI.Details.ShowMob(npcID, mapID)
     nameText:SetText(data.name)
 
     local totalKills = 0
-    local specificKills = 0
+    local filteredKills = 0
     local displayRank = "unknown"
     local displayType = nil
 
@@ -149,24 +159,29 @@ function NS.UI.Details.ShowMob(npcID, mapID)
 
     if data.encounters then
         for mID, encounter in pairs(data.encounters) do
+
             totalKills = totalKills + (encounter.kills or 0)
 
-            if mapID and mapID == mID then
-                specificKills = encounter.kills
-            end
+            local pKey, zKey = GetEncounterKeys(encounter)
+            local isMatch = (not filterParent or pKey == filterParent) and
+                    (not filterZone or zKey == filterZone)
 
-            if (mapID and mapID == mID) or (not mapID and displayRank == "unknown") then
+            if isMatch then
+                filteredKills = filteredKills + (encounter.kills or 0)
+
+                -- Capture rank/type from the relevant encounter
                 if encounter.rank then
                     displayRank = encounter.rank
                 end
                 if encounter.type then
                     displayType = encounter.type
                 end
-            end
 
-            if encounter.lastTime and encounter.lastTime > latestTimeStr then
-                latestTimeStr = encounter.lastTime
-                lastSeenEntry = encounter
+                -- Check for latest time within this context
+                if encounter.lastTime and encounter.lastTime > latestTimeStr then
+                    latestTimeStr = encounter.lastTime
+                    lastSeenEntry = encounter
+                end
             end
         end
     end
@@ -178,21 +193,17 @@ function NS.UI.Details.ShowMob(npcID, mapID)
         typeText:Hide()
     end
 
-    if mapID and specificKills > 0 then
-        countText:SetText("Killed: " .. specificKills)
+    -- If we have filtered context, show that count, otherwise total
+    if filterParent and filteredKills > 0 then
+        countText:SetText("Killed: " .. filteredKills)
     else
         countText:SetText("Killed: " .. totalKills)
     end
 
-    local locData = lastSeenEntry
-    if mapID and data.encounters and data.encounters[mapID] then
-        locData = data.encounters[mapID]
-    end
-
-    if locData then
-        local timeStr = locData.lastTime or "?"
-        if locData.lastX and locData.lastY then
-            lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", locData.lastX, locData.lastY, timeStr))
+    if lastSeenEntry then
+        local timeStr = lastSeenEntry.lastTime or "?"
+        if lastSeenEntry.lastX and lastSeenEntry.lastY then
+            lastKillText:SetText(string.format("Loc: %.1f, %.1f (%s)", lastSeenEntry.lastX, lastSeenEntry.lastY, timeStr))
             lastKillText:Show()
         else
             lastKillText:SetText("Last Kill: " .. timeStr)

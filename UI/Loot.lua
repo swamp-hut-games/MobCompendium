@@ -6,9 +6,6 @@ local lootScrollChild, spellScrollChild
 local lootButtons = {}
 local spellButtons = {}
 
--- =========================================================================
--- HELPER: Create Generic List Button (Used for both Loot & Spells)
--- =========================================================================
 local function CreateListButton(parent, pool, index)
     local btn = pool[index]
     if not btn then
@@ -43,12 +40,8 @@ local function CreateListButton(parent, pool, index)
     return btn
 end
 
--- =========================================================================
--- INITIALIZATION
--- =========================================================================
 function NS.UI.Loot.Init(mainFrame)
-    
-    -- 1. CONTAINER (Right Column)
+
     local rightPanel = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
     rightPanel:SetPoint("TOPRIGHT", mainFrame, "TOPRIGHT", -4, -22)
     rightPanel:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 4)
@@ -62,7 +55,6 @@ function NS.UI.Loot.Init(mainFrame)
     })
     rightPanel:SetBackdropColor(0.25, 0.25, 0.25, 1)
 
-    -- 2. LOOT SECTION (Top Half)
     local lootTitle = rightPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     lootTitle:SetPoint("TOP", rightPanel, "TOP", 0, -12)
     lootTitle:SetText("Known Loot")
@@ -77,14 +69,12 @@ function NS.UI.Loot.Init(mainFrame)
     lootScrollChild:SetSize(260, 1)
     lootScroll:SetScrollChild(lootScrollChild)
 
-    -- 3. DIVIDER
     local divider = rightPanel:CreateTexture(nil, "ARTWORK")
     divider:SetColorTexture(1, 1, 1, 0.2)
     divider:SetHeight(1)
     divider:SetPoint("TOPLEFT", lootScroll, "BOTTOMLEFT", -5, -15)
     divider:SetPoint("TOPRIGHT", lootScroll, "BOTTOMRIGHT", 25, -15)
 
-    -- 4. SPELL SECTION (Bottom Half)
     local spellTitle = rightPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     spellTitle:SetPoint("TOP", divider, "BOTTOM", 0, -15)
     spellTitle:SetText("Known Abilities")
@@ -108,19 +98,44 @@ function NS.UI.Loot.Reset()
     end
 end
 
--- =========================================================================
--- UPDATE LOGIC
--- =========================================================================
-local function UpdateLootList(data)
+-- Helper to generate comparison keys for encounters
+local function GetEncounterKeys(encounter)
+    local pKey = encounter.parentMap or "Uncategorized"
+    local zKey = encounter.zoneName or "Unknown Zone"
+
+    if encounter.instType and encounter.instType ~= "none" and encounter.diffName and encounter.diffName ~= "" then
+        pKey = pKey .. " [" .. encounter.diffName .. "]"
+    end
+
+    return pKey, zKey
+end
+
+local function UpdateLootList(data, filterParent, filterZone)
     for _, btn in pairs(lootButtons) do
         btn:Hide()
     end
-    if not data or not data.drops then
+    if not data or not data.encounters then
         return
     end
 
     local list = {}
-    for id, _ in pairs(data.drops) do
+    local uniqueDrops = {}
+
+    for mapID, encounter in pairs(data.encounters) do
+
+        local pKey, zKey = GetEncounterKeys(encounter)
+
+        local isMatch = (not filterParent or pKey == filterParent) and
+                (not filterZone or zKey == filterZone)
+
+        if isMatch and encounter.drops then
+            for itemID, _ in pairs(encounter.drops) do
+                uniqueDrops[itemID] = true
+            end
+        end
+    end
+
+    for id, _ in pairs(uniqueDrops) do
         table.insert(list, id)
     end
     table.sort(list)
@@ -174,6 +189,7 @@ local function UpdateLootList(data)
 end
 
 local function UpdateSpellList(data)
+    -- Spells are currently global per NPC ID (not per zone), so no filtering needed.
     for _, btn in pairs(spellButtons) do
         btn:Hide()
     end
@@ -229,8 +245,8 @@ local function UpdateSpellList(data)
     spellScrollChild:SetHeight(height)
 end
 
-function NS.UI.Loot.Update(npcID)
+function NS.UI.Loot.Update(npcID, filterParent, filterZone)
     local data = MobCompendiumDB[npcID]
-    UpdateLootList(data)
+    UpdateLootList(data, filterParent, filterZone)
     UpdateSpellList(data)
 end

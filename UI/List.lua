@@ -23,11 +23,7 @@ local function GetSubZoneKey(parent, zone)
     return parent .. "::" .. zone
 end
 
--- =========================================================================
--- SEARCH LOGIC HELPER
--- =========================================================================
 local function MatchesFilter(mobData, searchText, filters)
-
     -- If search is empty, show everything
     if searchText == "" then
         return true
@@ -67,7 +63,6 @@ local function MatchesFilter(mobData, searchText, filters)
     end
 
     if filters.loot and mobData.encounters then
-
         for _, enc in pairs(mobData.encounters) do
             if enc.drops then
                 for itemID, _ in pairs(enc.drops) do
@@ -79,7 +74,7 @@ local function MatchesFilter(mobData, searchText, filters)
                             return true
                         end
                     end
-
+                    
                 end
             end
         end
@@ -88,33 +83,23 @@ local function MatchesFilter(mobData, searchText, filters)
     return false
 end
 
--- =========================================================================
--- EXPANSION LOGIC
--- =========================================================================
-
 local function ToggleParent(parentKey)
     local parentIsOpen = expandedParents[parentKey]
 
     if IsAltKeyDown() then
         local targetGlobalState = not parentIsOpen
-
         for _, pKey in ipairs(visibleParentKeys) do
             expandedParents[pKey] = targetGlobalState
-
             if parentToSubZoneKeys[pKey] then
                 for _, sKey in ipairs(parentToSubZoneKeys[pKey]) do
                     expandedSubZones[sKey] = targetGlobalState
                 end
             end
         end
-
     elseif IsShiftKeyDown() then
-
         expandedParents[parentKey] = true
-
         local subKeys = parentToSubZoneKeys[parentKey]
         if subKeys and #subKeys > 0 then
-
             local anyChildOpen = false
             for _, sKey in ipairs(subKeys) do
                 if expandedSubZones[sKey] then
@@ -122,14 +107,11 @@ local function ToggleParent(parentKey)
                     break
                 end
             end
-
             local targetChildState = not anyChildOpen
-
             for _, sKey in ipairs(subKeys) do
                 expandedSubZones[sKey] = targetChildState
             end
         end
-
     else
         expandedParents[parentKey] = not parentIsOpen
     end
@@ -229,9 +211,6 @@ function NS.UI.List.Init(mainFrame)
     settingsBtn.icon:SetTexture("Interface\\WorldMap\\Gear_64")
     settingsBtn.icon:SetTexCoord(0, 0.5, 0, 0.5)
 
-    -- =========================================================================
-    -- SEARCH MENU
-    -- =========================================================================
     searchMenu = CreateFrame("Frame", nil, listBgFrame, "BackdropTemplate")
     searchMenu:SetSize(120, 130)
     searchMenu:SetPoint("TOPRIGHT", settingsBtn, "BOTTOMRIGHT", 100, -5)
@@ -277,12 +256,9 @@ function NS.UI.List.Init(mainFrame)
 
     local cbMobs = CreateSearchOption("Mobs", "mobs", title)
     cbMobs:SetPoint("TOPLEFT", 10, -25)
-
     local cbZones = CreateSearchOption("Zones", "zones", cbMobs)
     local cbLoot = CreateSearchOption("Loot", "loot", cbZones)
     local cbSpells = CreateSearchOption("Spells", "spells", cbLoot)
-
-    -- =========================================================================
 
     settingsBtn:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -336,7 +312,6 @@ function NS.UI.List.Update()
     local searchText = searchBox and strlower(searchBox:GetText() or "") or ""
     local isSearching = (searchText ~= "")
 
-    -- Load Filters
     local filters = MobCompendiumDB.searchFilter or { mobs = true, zones = true, loot = true, spells = true }
 
     for id, mobData in pairs(MobCompendiumDB) do
@@ -362,15 +337,19 @@ function NS.UI.List.Update()
                             end
 
                             if not hierarchy[pKey].zones[zKey] then
-                                hierarchy[pKey].zones[zKey] = { mobs = {} }
+                                hierarchy[pKey].zones[zKey] = { mobs = {}, seen = {} }
                             end
 
-                            table.insert(hierarchy[pKey].zones[zKey].mobs, {
-                                id = id,
-                                name = mobData.name,
-                                rank = encounter.rank or "normal",
-                                mapID = mapID
-                            })
+                            if not hierarchy[pKey].zones[zKey].seen[id] then
+                                table.insert(hierarchy[pKey].zones[zKey].mobs, {
+                                    id = id,
+                                    name = mobData.name,
+                                    rank = encounter.rank or "normal",
+                                    groupParent = pKey,
+                                    groupZone = zKey
+                                })
+                                hierarchy[pKey].zones[zKey].seen[id] = true
+                            end
                         end
                     end
                 end
@@ -457,7 +436,8 @@ function NS.UI.List.Update()
                             name = mob.name,
                             id = mob.id,
                             rank = mob.rank,
-                            mapID = mob.mapID
+                            groupParent = mob.groupParent,
+                            groupZone = mob.groupZone
                         })
                     end
                     table.insert(displayList, { type = "SPACER", height = 8 })
@@ -568,12 +548,11 @@ function NS.UI.List.Update()
                     NS.UI.List.Update()
 
                     if NS.UI.Details and NS.UI.Details.ShowMob then
-                        NS.UI.Details.ShowMob(item.id, item.mapID)
+                        NS.UI.Details.ShowMob(item.id, item.groupParent, item.groupZone)
                     end
-                    if NS.UI.RightColumn then
-                        NS.UI.RightColumn.Update(item.id)
+                    if NS.UI.RightColumn and NS.UI.RightColumn.Update then
+                        NS.UI.RightColumn.Update(item.id, item.groupParent, item.groupZone)
                     end
-
                 end)
             end
 
