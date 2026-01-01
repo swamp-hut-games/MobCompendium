@@ -12,12 +12,9 @@ function NS.UI.FilterBar.Init(mainFrame)
     local filterBar = CreateFrame("Frame", nil, mainFrame, "BackdropTemplate")
 
     filterBar:SetHeight(40)
-
-    -- Anchor to the bottom inside the main frame
     filterBar:SetPoint("BOTTOMLEFT", mainFrame, "BOTTOMLEFT", 4, 4)
     filterBar:SetPoint("BOTTOMRIGHT", mainFrame, "BOTTOMRIGHT", -4, 4)
 
-    -- Visual Style
     filterBar:SetBackdrop({
         bgFile = "Interface\\Collections\\CollectionsBackgroundTile",
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
@@ -27,6 +24,10 @@ function NS.UI.FilterBar.Init(mainFrame)
     filterBar:SetBackdropColor(1, 1, 1, 1)
 
     local prevAnchor = nil
+    
+    if not MobCompendiumDB.settings.rankFilters then
+        MobCompendiumDB.settings.rankFilters = {}
+    end
 
     for _, rankKey in ipairs(RANK_DISPLAY_ORDER) do
         local config = NS.RANK_CONFIG[rankKey]
@@ -59,11 +60,19 @@ function NS.UI.FilterBar.Init(mainFrame)
             cb.text:ClearAllPoints()
             cb.text:SetPoint("LEFT", cb.icon, "RIGHT", 5, 0)
 
-            cb:SetChecked(true)
+            local savedState = MobCompendiumDB.settings.rankFilters[rankKey]
+
+            if savedState == nil then
+                savedState = true
+            end
+            cb:SetChecked(savedState)
+
             cb:SetScript("OnClick", function(self)
                 local isChecked = self:GetChecked()
                 PlaySound(isChecked and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
-                
+
+                MobCompendiumDB.settings.rankFilters[rankKey] = isChecked
+
                 if NS.UI.List and NS.UI.List.Update then
                     NS.UI.List.Update()
                 end

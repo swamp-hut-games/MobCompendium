@@ -8,6 +8,17 @@ local defaultSettings = {
     minimap = {
         hide = false,
         angle = 45
+    },
+    rankFilters = {
+        boss = true,
+        rareelite = true,
+        elite = true,
+        rare = true,
+        normal = true,
+        minion = true,
+        critter = true,
+        wildpet = true,
+        unknown = true
     }
 }
 
@@ -21,11 +32,21 @@ function NS.InitSettings()
                 MobCompendiumDB.settings[k] = v
             end
         end
+        
+        if not MobCompendiumDB.settings.rankFilters then
+            MobCompendiumDB.settings.rankFilters = CopyTable(defaultSettings.rankFilters)
+        else
+            for k, v in pairs(defaultSettings.rankFilters) do
+                if MobCompendiumDB.settings.rankFilters[k] == nil then
+                    MobCompendiumDB.settings.rankFilters[k] = v
+                end
+            end
+        end
     end
 
     local panel = CreateFrame("Frame")
     panel.name = "Mob Compendium"
-    
+
     NS.SettingsPanelFrame = panel
 
     local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
@@ -71,7 +92,7 @@ function NS.InitSettings()
     cbPrintUpdate:SetScript("OnClick", function(self)
         MobCompendiumDB.settings.printUpdate = self:GetChecked()
     end)
-    
+
     local category, layout = Settings.RegisterCanvasLayoutCategory(panel, "Mob Compendium")
     NS.SettingsCategory = category
     Settings.RegisterAddOnCategory(category)
